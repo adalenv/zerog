@@ -1,11 +1,11 @@
 # 🚀 zerog (Zero-G) — Antigravity CLI Account Auto-Switcher
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Ruby](https://img.shields.io/badge/Ruby-%3E%3D2.7-red.svg)](https://www.ruby-lang.org)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D16-green.svg)](https://nodejs.org)
+[![npm version](https://img.shields.io/npm/v/zerog.svg)](https://www.npmjs.com/package/zerog)
 [![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20Windows%20(WSL)-green.svg)](#-cross-platform-support)
-[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](#-testing)
 
-**`zerog`** (Zero-G) is an open-source CLI application that wraps the **Google Antigravity CLI (`agy`)** to provide transparent, multi-account quota rotation with zero downtime and zero loss of conversation context.
+**`zerog`** (Zero-G) is an open-source Node.js application that wraps the **Google Antigravity CLI (`agy`)** to provide transparent, multi-account quota rotation with zero downtime and zero loss of conversation context.
 
 Whenever you run `zerog`, it runs `agy`. When your account reaches its daily quota, plan usage limits, rate limits (HTTP 429), or gRPC `RESOURCE_EXHAUSTED` errors, `zerog` **automatically switches to the next ready account in your pool and resumes your session seamlessly**.
 
@@ -13,6 +13,7 @@ Whenever you run `zerog`, it runs `agy`. When your account reaches its daily quo
 
 ## ✨ Features
 
+- ⚡ **Run Instantly via `npx` or `npm`**: No manual compilation or build steps. Pure Node.js with **zero external npm dependencies**.
 - 🔄 **Self-Discovering `agy` Path**: `zerog` dynamically locates your `agy` binary across `$PATH`, `~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`, `~/.gemini`, or custom paths with zero manual configuration.
 - ⌨️ **100% Native Terminal Fidelity**: Zero input lag, full keyboard typing support, arrow keys, terminal query escapes, and TUI compatibility.
 - 🔁 **Transparent Failover**: Automatically catches plan limits, swaps credentials in the OS keyring / settings, and continues the session using `agy --continue`.
@@ -21,23 +22,31 @@ Whenever you run `zerog`, it runs `agy`. When your account reaches its daily quo
 - 👥 **Multi-Account Support**: Manage any combination of Google accounts (via browser OAuth) and Gemini API keys.
 - 📦 **Cross-PC Portability**: Export your configured pool on one machine (`zerog export`) and import it on another (`zerog import`) without re-authenticating through a browser.
 - 🌐 **Real-Time Web Dashboard**: Built-in visual dashboard (`zerog web`) on `http://localhost:7890` for inspecting account health, switching profiles, and monitoring events.
-- ⚡ **Zero External Gem Dependencies**: Built purely on the Ruby standard library.
 
 ---
 
-## 🚀 Quick Install
+## 🚀 Installation & Quick Start
 
-### 1. Clone the repository
+### Option 1: Run instantly with `npx` (No Install Required)
+```bash
+npx zerog
+```
+
+### Option 2: Install globally via `npm`
+```bash
+npm install -g zerog
+```
+Then run anywhere:
+```bash
+zerog
+```
+
+### Option 3: Install from Source
 ```bash
 git clone https://github.com/adalenv/zerog.git
 cd zerog
-```
-
-### 2. Run the installer
-```bash
 ./install.sh
 ```
-The installer verifies Ruby, automatically discovers your `agy` installation, links `bin/zerog` into `~/.local/bin/zerog`, and ensures your shell is ready.
 
 ---
 
@@ -112,7 +121,7 @@ zerog delete work-account
 zerog export my-pool.json
 
 # 2. On your new PC / Mac / Linux: Import it directly
-zerog import my-pool.json
+npx zerog import my-pool.json
 ```
 `zerog` automatically restores the accounts, configures the local OS keyring, sets the active account, and you can immediately run `zerog` without logging into browsers again!
 
@@ -133,10 +142,10 @@ zerog daemon stop
 
 | Operating System | Keyring Backend | Requirements |
 |---|---|---|
-| **macOS** | macOS Keychain (`security`) | Plug & Play (Ruby pre-installed) |
-| **Linux (Ubuntu / Debian / Fedora / Arch)** | Secret Service D-Bus (`secret-tool`) or file fallback | `sudo apt install ruby libsecret-tools` |
-| **Windows via WSL** | Linux Secret Service / WSL | Standard Linux installation inside WSL |
-| **Windows Native** | Windows Credential Manager / API Keys | Ruby from [rubyinstaller.org](https://rubyinstaller.org) |
+| **macOS** | macOS Keychain (`security`) | Node.js (>= 16) |
+| **Linux (Ubuntu / Debian / Fedora / Arch)** | Secret Service D-Bus (`secret-tool`) or file fallback | Node.js & `sudo apt install libsecret-tools` |
+| **Windows via WSL** | Linux Secret Service / WSL | Node.js inside WSL |
+| **Windows Native** | Windows Credential Manager / API Keys | Node.js from [nodejs.org](https://nodejs.org) |
 
 > [!NOTE]
 > **Gemini API Key profiles** (`zerog add-key ...`) work 100% identically across **all operating systems** without any OS keyring dependencies.
@@ -170,10 +179,10 @@ export AGY_PATH="/path/to/custom/agy"
 
 ## 🧪 Testing
 
-`zerog` includes a comprehensive unit test suite using Ruby's built-in `Minitest`:
+`zerog` includes a comprehensive unit test suite using Node.js built-in test runner:
 
 ```bash
-ruby -Ilib test/test_zerog.rb
+npm test
 ```
 
 ---
@@ -183,29 +192,30 @@ ruby -Ilib test/test_zerog.rb
 ```text
 zerog/
 ├── bin/
-│   └── zerog                  # Executable CLI entrypoint (symlinked into PATH)
+│   ├── zerog.js               # Executable Node.js CLI entrypoint
+│   └── zerog                  # Symlink wrapper
 ├── lib/
-│   ├── zerog.rb               # Root module
-│   └── zerog/
-│       ├── version.rb         # Version constant (1.0.0)
-│       ├── config.rb          # Configuration management (~/.zerog/config.json)
-│       ├── agy_locator.rb     # Dynamic, cross-platform agy binary discovery
-│       ├── account.rb         # Account data model & cooldown tracking
-│       ├── account_manager.rb # Keychain & settings synchronization logic
-│       ├── quota_detector.rb  # Quota & HTTP 429 pattern matcher
-│       ├── runner.rb          # TTY interactive wrapper & auto-switch runner
-│       ├── daemon.rb          # Background cli.log watchdog
-│       ├── notifier.rb        # Terminal banners & system notifications
-│       └── web_server.rb      # WEBrick REST API & static file server
+│   ├── index.js               # Root module exports
+│   ├── version.js             # Version constant (1.0.0)
+│   ├── config.js              # Configuration management (~/.zerog/config.json)
+│   ├── agy-locator.js         # Dynamic, cross-platform agy binary discovery
+│   ├── account.js             # Account data model & cooldown tracking
+│   ├── account-manager.js     # Keyring & settings synchronization logic
+│   ├── quota-detector.js      # Quota & HTTP 429 pattern matcher
+│   ├── runner.js              # TTY interactive wrapper & auto-switch runner
+│   ├── daemon.js              # Background cli.log watchdog
+│   ├── notifier.js            # Terminal banners & system notifications
+│   └── web-server.js          # Native HTTP REST API & static file server
 ├── web/
 │   └── public/                # Standalone Web Dashboard SPA
 │       ├── index.html         # Responsive dashboard interface
 │       ├── style.css          # Modern dark-mode styling
 │       └── app.js             # Real-time dashboard controller
 ├── test/
-│   └── test_zerog.rb          # Minitest test suite
+│   └── test_zerog.js          # Node test suite (node:test)
 ├── .github/workflows/
 │   └── ci.yml                 # GitHub Actions CI matrix
+├── package.json               # npm / npx package definition
 ├── install.sh                 # Quick installer script
 ├── uninstall.sh               # Uninstaller script
 ├── CONTRIBUTING.md            # Contribution guidelines

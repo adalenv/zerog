@@ -22,19 +22,20 @@ echo " \\_____|\\___|_|  \\___/  \\____/"
 echo -e "${NC}"
 echo -e "${BOLD}Installing zerog — Antigravity CLI Account Auto-Switcher...${NC}\n"
 
-# 1. Check Ruby
-if ! command -v ruby >/dev/null 2>&1; then
-  echo -e "${RED}[ERROR] Ruby is required but was not found on your system.${NC}"
-  echo "Please install Ruby (>= 2.7):"
-  echo "  macOS:  Pre-installed, or 'brew install ruby'"
-  echo "  Ubuntu/Debian: 'sudo apt update && sudo apt install ruby'"
-  echo "  Fedora: 'sudo dnf install ruby'"
-  echo "  Arch:   'sudo pacman -S ruby'"
+# 1. Check Node.js
+if ! command -v node >/dev/null 2>&1; then
+  echo -e "${RED}[ERROR] Node.js is required but was not found on your system.${NC}"
+  echo "Please install Node.js (>= 16):"
+  echo "  macOS:  'brew install node'"
+  echo "  Ubuntu/Debian: 'sudo apt update && sudo apt install nodejs npm'"
+  echo "  Fedora: 'sudo dnf install nodejs'"
+  echo "  Arch:   'sudo pacman -S nodejs npm'"
+  echo "  Windows: https://nodejs.org"
   exit 1
 fi
 
-RUBY_VER=$(ruby -e 'puts RUBY_VERSION')
-echo -e "✓ Found Ruby ${GREEN}v${RUBY_VER}${NC}"
+NODE_VER=$(node -v)
+echo -e "✓ Found Node.js ${GREEN}${NODE_VER}${NC}"
 
 # 2. Check for agy (Antigravity CLI)
 AGY_FOUND=""
@@ -60,10 +61,10 @@ fi
 
 # 3. Determine repository directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BIN_SRC="${SCRIPT_DIR}/bin/zerog"
+BIN_SRC="${SCRIPT_DIR}/bin/zerog.js"
 
 if [ ! -f "${BIN_SRC}" ]; then
-  echo -e "${RED}[ERROR] Cannot find bin/zerog at ${BIN_SRC}${NC}"
+  echo -e "${RED}[ERROR] Cannot find bin/zerog.js at ${BIN_SRC}${NC}"
   exit 1
 fi
 
