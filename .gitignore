@@ -1,0 +1,36 @@
+# OS and Editor files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Sensitive credentials & exports (NEVER commit tokens!)
+*-accounts.json
+*my-pool*.json
+*.key
+*.token
+.zerog_keyring_token
+events.jsonl
+
+# Ruby / Gem artifacts
+*.gem
+*.rbc
+/.config
+/coverage/
+/InstalledFiles
+/pkg/
+/spec/reports/
+/spec/examples.txt
+/test/tmp/
+/test/version_tmp/
+/tmp/
+.bundle/
+vendor/bundle/

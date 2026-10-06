@@ -1,0 +1,344 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative "../lib/zerog/version"
+require_relative "../lib/zerog/config"
+require_relative "../lib/zerog/account"
+require_relative "../lib/zerog/account_manager"
+require_relative "../lib/zerog/quota_detector"
+require_relative "../lib/zerog/notifier"
+require_relative "../lib/zerog/runner"
+require_relative "../lib/zerog/daemon"
+require_relative "../lib/zerog/web_server"
+
+module ZeroG
+  class CLI
+    MANAGEMENT_COMMANDS = %w[
+      list ls accounts
+      status info
+      use switch
+      login
+      add-key addkey
+      capture
+      delete rm
+      reset-cooldown reset
+      test
+      daemon
+      watch
+      web ui dashboard
+      init
+      config
+      export
+      import
+      version --version -v
+      help --help -h
+    ].freeze
+
+    def self.start(args)
+      new.run(args)
+    end
+
+    def initialize
+      AccountManager.ensure_agy_installed!
+      @manager = AccountManager.new
+      @config = @manager.config
+    end
+
+    def run(args)
+      # If no arguments provided, directly run agy with rotating accounts!
+      if args.empty?
+        return Runner.new(@manager).run([])
+      end
+
+      first = args.first
+
+      # If the first argument is a management command:
+      if MANAGEMENT_COMMANDS.include?(first)
+        handle_management(args)
+      elsif first == "run"
+        # Explicit run
+        Runner.new(@manager).run(args[1..-1])
+      else
+        # Any other args (e.g. -p, --print, -c, --continue, models, etc.):
+        # Directly pass through to agy with auto-rotating accounts!
+        Runner.new(@manager).run(args)
+      end
+    end
+
+    private
+
+    def handle_management(args)
+      cmd = args.shift
+
+      case cmd
+      when "list", "ls", "accounts"
+        list_accounts
+      when "status", "info"
+        show_status
+      when "use", "switch"
+        use_account(args.first)
+      when "login"
+        login_account(args[0], args[1])
+      when "add-key", "addkey"
+        add_api_key(args[0], args[1], args[2])
+      when "capture"
+        capture_current(args[0], args[1])
+      when "delete", "rm"
+        delete_account(args.first)
+      when "reset-cooldown", "reset"
+        reset_cooldown(args.first)
+      when "test"
+        test_account(args.first)
+      when "daemon"
+        manage_daemon(args.first)
+      when "watch"
+        Daemon.new(@manager).start_foreground
+      when "web", "ui", "dashboard"
+        port = args.first ? args.first.to_i : nil
+        WebServer.new(@manager, port).start
+      when "init"
+        init_shell(args.first)
+      when "config"
+        manage_config(args[0], args[1])
+      when "export"
+        export_accounts(args.first)
+      when "import"
+        import_accounts(args.first)
+      when "version", "--version", "-v"
+        puts "zerog v#{VERSION} (wrapping agy CLI with rotating accounts)"
+      when "help", "--help", "-h"
+        show_help
+      end
+    end
+
+    def show_help
+      puts <<~HELP
+        #{Notifier::BOLD}#{Notifier::CYAN}zerog#{Notifier::RESET} v#{VERSION} — Run Antigravity (agy) with Auto-Rotating Accounts
+
+        #{Notifier::BOLD}USAGE:#{Notifier::RESET}
+          zerog [agy_flags...]                #{Notifier::GREEN}Run agy with automatic account rotation#{Notifier::RESET}
+          zerog -p "your prompt"             Run prompt turn; auto-retries on quota limit
+          zerog accounts                     List all accounts in the pool
+          zerog status                       Show active account and pool health
+          zerog use <id>                     Manually switch active account
+          zerog login <id> [name]            Log into a new Google account in browser
+          zerog add-key <id> <key> [prio]    Add a Gemini API key profile
+          zerog capture <id>                 Capture currently logged-in Google session
+          zerog delete <id>                  Remove account from the pool
+          zerog reset-cooldown <id>          Clear quota cooldown for an account
+          zerog test [id]                    Verify account credentials with agy
+          zerog export [file]                Export accounts to portable JSON file for other PCs
+          zerog import <file>                Import accounts into pool from file
+          zerog daemon [start|stop|status]   Manage background log watchdog
+          zerog web [port]                   Launch local web dashboard (default: 7890)
+
+        #{Notifier::BOLD}BEHAVIOR:#{Notifier::RESET}
+          Running #{Notifier::CYAN}zerog#{Notifier::RESET} by itself runs #{Notifier::CYAN}agy#{Notifier::RESET} directly.
+          If your account hits a plan usage or quota limit, #{Notifier::CYAN}zerog#{Notifier::RESET} automatically
+          swaps to the next healthy account and resumes your session seamless!
+      HELP
+    end
+
+    def show_status
+      active = @manager.active_account
+      accounts = @manager.list_accounts
+      exhausted = accounts.select(&:exhausted?)
+      daemon = Daemon.new(@manager)
+
+      puts "\n#{Notifier::BOLD}─── zerog Pool Status ───#{Notifier::RESET}"
+      if active
+        puts "  #{Notifier::BOLD}Active Account:#{Notifier::RESET}    #{Notifier::GREEN}#{active.name}#{Notifier::RESET} (#{active.email}) [#{active.type}]"
+      else
+        puts "  #{Notifier::BOLD}Active Account:#{Notifier::RESET}    #{Notifier::YELLOW}None#{Notifier::RESET}"
+      end
+      puts "  #{Notifier::BOLD}Total Accounts:#{Notifier::RESET}    #{accounts.size}"
+      puts "  #{Notifier::BOLD}Ready Accounts:#{Notifier::RESET}    #{accounts.size - exhausted.size}"
+      puts "  #{Notifier::BOLD}In Cooldown:#{Notifier::RESET}       #{exhausted.size}"
+      puts "  #{Notifier::BOLD}Auto-Switch:#{Notifier::RESET}       #{@config.auto_switch? ? "#{Notifier::GREEN}ENABLED#{Notifier::RESET}" : "#{Notifier::RED}DISABLED#{Notifier::RESET}"}"
+      puts "  #{Notifier::BOLD}Strategy:#{Notifier::RESET}          #{@config.switch_strategy.capitalize}"
+      puts "  #{Notifier::BOLD}Cooldown Duration:#{Notifier::RESET} #{@config.cooldown_minutes} minutes"
+      puts "  #{Notifier::BOLD}Antigravity Path:#{Notifier::RESET}  #{@manager.agy_path}"
+      puts "  #{Notifier::BOLD}Keyring Backend:#{Notifier::RESET}   #{@manager.keyring_backend}"
+      puts "  #{Notifier::BOLD}Watchdog Daemon:#{Notifier::RESET}   #{daemon.running? ? "#{Notifier::GREEN}RUNNING#{Notifier::RESET}" : "#{Notifier::GRAY}STOPPED#{Notifier::RESET}"}"
+      puts ""
+    end
+
+    def list_accounts
+      accounts = @manager.list_accounts
+      active = @manager.active_account
+
+      if accounts.empty?
+        puts "#{Notifier::YELLOW}No accounts in pool. Use 'zerog capture default' or 'zerog login <id>' to add one.#{Notifier::RESET}"
+        return
+      end
+
+      puts "\n#{Notifier::BOLD}PRIO  STATUS    TYPE    ID              EMAIL                           COOLDOWN#{Notifier::RESET}"
+      puts "─" * 78
+
+      accounts.each do |acc|
+        is_active = active && active.id == acc.id
+        status_str = if is_active
+                       "#{Notifier::GREEN}ACTIVE  #{Notifier::RESET}"
+                     elsif acc.exhausted?
+                       "#{Notifier::RED}LIMIT   #{Notifier::RESET}"
+                     else
+                       "#{Notifier::GRAY}READY   #{Notifier::RESET}"
+                     end
+
+        type_str = acc.type == "google" ? "Google " : "API Key"
+        cooldown = acc.exhausted? ? "#{Notifier::RED}#{acc.remaining_cooldown_human}#{Notifier::RESET}" : "-"
+        prio_str = "##{acc.priority}".ljust(5)
+
+        puts "#{prio_str} #{status_str} #{type_str}  #{acc.id.ljust(15)} #{acc.email[0..28].ljust(30)} #{cooldown}"
+      end
+      puts ""
+    end
+
+    def use_account(id)
+      unless id
+        puts "#{Notifier::RED}Error: please specify account ID. (Run 'zerog accounts' to see IDs)#{Notifier::RESET}"
+        exit 1
+      end
+
+      acc = @manager.activate_account(id)
+      puts "#{Notifier::GREEN}✓ Switched active account to '#{acc.id}' (#{acc.email})#{Notifier::RESET}"
+    end
+
+    def capture_current(id, name)
+      id ||= "primary"
+      acc = @manager.capture_current(id, name)
+      puts "#{Notifier::GREEN}✓ Successfully captured active session as '#{acc.id}' (#{acc.email})#{Notifier::RESET}"
+    end
+
+    def add_api_key(id, key, priority)
+      unless id && key
+        puts "#{Notifier::RED}Usage: zerog add-key <id> <gemini_api_key> [priority]#{Notifier::RESET}"
+        exit 1
+      end
+
+      acc = @manager.add_gemini_api_key(id, nil, key, priority || 10)
+      puts "#{Notifier::GREEN}✓ Added Gemini API key account '#{acc.id}'#{Notifier::RESET}"
+    end
+
+    def login_account(id, name)
+      unless id
+        puts "#{Notifier::RED}Usage: zerog login <id> [display_name]#{Notifier::RESET}"
+        exit 1
+      end
+
+      puts "#{Notifier::CYAN}Starting sign-in for '#{id}'...#{Notifier::RESET}"
+      puts "#{Notifier::GRAY}Your browser will open. Sign into your Google account, then return here.#{Notifier::RESET}\n"
+
+      acc = @manager.start_google_login(id, name) do |phase, msg|
+        puts "[zerog] #{msg}"
+      end
+
+      puts "\n#{Notifier::GREEN}✓ Successfully registered account '#{acc.id}' (#{acc.email}) into the pool!#{Notifier::RESET}"
+    end
+
+    def delete_account(id)
+      unless id
+        puts "#{Notifier::RED}Usage: zerog delete <id>#{Notifier::RESET}"
+        exit 1
+      end
+
+      @manager.delete_account(id)
+      puts "#{Notifier::GREEN}✓ Account '#{id}' deleted from pool.#{Notifier::RESET}"
+    end
+
+    def reset_cooldown(id)
+      unless id
+        puts "#{Notifier::RED}Usage: zerog reset-cooldown <id>#{Notifier::RESET}"
+        exit 1
+      end
+
+      @manager.reset_cooldown(id)
+      puts "#{Notifier::GREEN}✓ Cleared cooldown for '#{id}'. Account is now READY.#{Notifier::RESET}"
+    end
+
+    def test_account(id)
+      acc = id ? @manager.find_account(id) : @manager.active_account
+      unless acc
+        puts "#{Notifier::RED}Account not found.#{Notifier::RESET}"
+        exit 1
+      end
+
+      print "Testing account '#{acc.id}' (#{acc.email}) with agy... "
+      STDOUT.flush
+      result = @manager.test_account(acc)
+
+      if result[:success]
+        puts "#{Notifier::GREEN}PASSED! ✓#{Notifier::RESET}"
+      else
+        puts "#{Notifier::RED}FAILED! ✗#{Notifier::RESET}"
+        puts "  #{result[:message]}"
+      end
+    end
+
+    def manage_daemon(action)
+      daemon = Daemon.new(@manager)
+      case action
+      when "start"
+        daemon.start_background
+      when "stop"
+        daemon.stop
+      when "status"
+        daemon.status
+      else
+        puts "Usage: zerog daemon [start|stop|status]"
+      end
+    end
+
+    def init_shell(shell_type)
+      shell_type ||= File.basename(ENV["SHELL"] || "zsh")
+      rc_file = shell_type =~ /bash/ ? "~/.bashrc" : "~/.zshrc"
+
+      puts <<~INIT
+        #{Notifier::BOLD}zerog is ready!#{Notifier::RESET}
+        Run #{Notifier::CYAN}zerog#{Notifier::RESET} to launch agy with rotating accounts.
+
+        If you also want 'agy' to automatically route to 'zerog', add to #{rc_file}:
+          #{Notifier::CYAN}alias agy="zerog"#{Notifier::RESET}
+      INIT
+    end
+
+    def manage_config(key, val)
+      if key.nil?
+        puts JSON.pretty_generate(@config.data)
+      elsif val.nil?
+        puts "#{key}: #{@config[key]}"
+      else
+        parsed_val = case val
+                     when "true" then true
+                     when "false" then false
+                     when /^\d+$/ then val.to_i
+                     else val
+                     end
+        @config[key] = parsed_val
+        puts "#{Notifier::GREEN}✓ Updated #{key} = #{parsed_val}#{Notifier::RESET}"
+      end
+    end
+
+    def export_accounts(path)
+      path ||= "zerog-accounts.json"
+      file = @manager.export_accounts(path)
+      accounts = @manager.list_accounts
+      puts "#{Notifier::GREEN}✓ Successfully exported #{accounts.size} account(s) to #{file}#{Notifier::RESET}"
+      puts "#{Notifier::GRAY}To use these on another PC, transfer this file and run: zerog import #{File.basename(file)}#{Notifier::RESET}"
+    end
+
+    def import_accounts(path)
+      unless path
+        puts "#{Notifier::RED}Usage: zerog import <path_to_accounts.json>#{Notifier::RESET}"
+        exit 1
+      end
+
+      res = @manager.import_accounts(path)
+      puts "#{Notifier::GREEN}✓ Successfully imported #{res[:count]} account(s) into pool!#{Notifier::RESET}"
+      puts "#{Notifier::GREEN}✓ Active account set to: '#{res[:active_account]}'#{Notifier::RESET}"
+      puts "Run 'zerog accounts' to see your pool."
+    end
+  end
+end
+
+ZeroG::CLI.start(ARGV) if __FILE__ == $PROGRAM_NAME
