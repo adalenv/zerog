@@ -27,6 +27,7 @@ const MANAGEMENT_COMMANDS = new Set([
   'config',
   'export',
   'import',
+  'install-agy', 'installagy',
   'version', '--version', '-v',
   'help', '--help', '-h'
 ]);
@@ -141,6 +142,12 @@ class CLI {
 
       case 'import':
         this.importAccounts(args[0]);
+        break;
+
+      case 'install-agy':
+      case 'installagy':
+        const AgyLocator = require('../lib/agy-locator');
+        AgyLocator.installAgy();
         break;
 
       case 'version':

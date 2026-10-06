@@ -7,6 +7,7 @@
     "zerog": "./bin/zerog.js"
   },
   "scripts": {
+    "postinstall": "node ./scripts/postinstall.js",
     "start": "node ./bin/zerog.js",
     "test": "node --test test/test_zerog.js"
   },
