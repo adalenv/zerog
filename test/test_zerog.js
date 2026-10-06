@@ -127,10 +127,11 @@ test('QuotaDetector pattern matching', () => {
 });
 
 test('AgyLocator discovery and overrides', () => {
-  // Should discover current agy
+  // If agy happens to be installed on the machine, verify it exists
   const found = AgyLocator.find();
-  assert.ok(found);
-  assert.ok(fs.existsSync(found));
+  if (found) {
+    assert.ok(fs.existsSync(found));
+  }
 
   // Test AGY_PATH env override
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zerog-test-'));

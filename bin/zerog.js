@@ -33,7 +33,6 @@ const MANAGEMENT_COMMANDS = new Set([
 
 class CLI {
   constructor() {
-    AccountManager.ensureAgyInstalled();
     this.manager = new AccountManager();
     this.config = this.manager.config;
   }
@@ -41,6 +40,7 @@ class CLI {
   async run(args) {
     // If no arguments provided, directly run agy with rotating accounts!
     if (args.length === 0) {
+      AccountManager.ensureAgyInstalled(this.config, true);
       const runner = new Runner(this.manager);
       const code = await runner.run([]);
       process.exit(code || 0);
@@ -52,10 +52,12 @@ class CLI {
     if (MANAGEMENT_COMMANDS.has(first)) {
       await this.handleManagement(args);
     } else if (first === 'run') {
+      AccountManager.ensureAgyInstalled(this.config, true);
       const runner = new Runner(this.manager);
       const code = await runner.run(args.slice(1));
       process.exit(code || 0);
     } else {
+      AccountManager.ensureAgyInstalled(this.config, true);
       // Pass-through to agy with auto-rotating accounts!
       const runner = new Runner(this.manager);
       const code = await runner.run(args);

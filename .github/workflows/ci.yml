@@ -29,6 +29,15 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libsecret-tools
 
+    - name: Create mock agy binary for CI
+      run: |
+        sudo mkdir -p /usr/local/bin
+        sudo tee /usr/local/bin/agy > /dev/null << 'EOF'
+        #!/usr/bin/env bash
+        echo "agy mock 1.0.0"
+        EOF
+        sudo chmod +x /usr/local/bin/agy
+
     - name: Run Test Suite
       run: |
         npm test
