@@ -3,81 +3,76 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>zerog — Antigravity Multi-Account & Auto-Switcher</title>
+  <title>zerog — Account Manager</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="app-layout">
-    <!-- Header -->
+  <div class="app">
+    <!-- Navbar -->
     <header class="navbar">
-      <div class="brand">
-        <div class="logo-badge">0G</div>
-        <div>
-          <h1>zerog</h1>
-          <p class="subtitle">Antigravity Multi-Account Auto-Switcher</p>
+      <div class="nav-left">
+        <div class="brand">
+          <span class="brand-name">zerog</span>
+          <span class="badge badge-version">v1.0.0</span>
+        </div>
+        <div class="status-pill" id="daemonStatus">
+          <span class="status-dot"></span>
+          <span id="daemonStatusText">Watchdog: Checking...</span>
         </div>
       </div>
-      <div class="header-actions">
-        <div class="status-indicator" id="daemonStatus">
-          <span class="dot"></span> Watchdog: <strong id="daemonStatusText">Checking...</strong>
-        </div>
-        <div class="switch-toggle-wrap">
-          <label class="switch">
-            <input type="checkbox" id="autoSwitchToggle" checked>
-            <span class="slider"></span>
-          </label>
-          <span class="switch-label">Auto-Switch</span>
-        </div>
-        <button class="btn btn-secondary" onclick="openSettingsModal()">⚙️ Settings</button>
+      <div class="nav-right">
+        <label class="toggle-control">
+          <input type="checkbox" id="autoSwitchToggle" checked>
+          <span class="toggle-track"></span>
+          <span class="toggle-label">Auto-Switch</span>
+        </label>
+        <button class="btn btn-secondary btn-sm" onclick="openSettingsModal()">Settings</button>
       </div>
     </header>
 
-    <!-- Main Container -->
-    <main class="container">
-      <!-- Stats Overview Cards -->
-      <section class="stats-grid">
-        <div class="card stat-card active-card">
-          <div class="card-label">Active Account</div>
-          <div class="card-val" id="activeAccountName">—</div>
-          <div class="card-meta" id="activeAccountEmail">—</div>
-          <div class="badge-row" id="activeAccountBadges"></div>
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Metric Cards -->
+      <section class="grid-metrics">
+        <div class="metric-card active-metric">
+          <div class="metric-header">Active Account</div>
+          <div class="metric-title" id="activeAccountName">—</div>
+          <div class="metric-sub" id="activeAccountEmail">—</div>
+          <div class="metric-tag" id="activeAccountTag"></div>
         </div>
 
-        <div class="card stat-card">
-          <div class="card-label">Pool Health</div>
-          <div class="card-val" id="poolReadyCount">0</div>
-          <div class="card-meta"><span id="poolTotalCount">0</span> accounts total · <span id="poolExhaustedCount" class="text-danger">0 in cooldown</span></div>
+        <div class="metric-card">
+          <div class="metric-header">Account Pool</div>
+          <div class="metric-title"><span id="poolReadyCount">0</span> <span class="metric-sub-inline">ready</span></div>
+          <div class="metric-sub"><span id="poolTotalCount">0</span> total · <span id="poolExhaustedCount">0</span> in cooldown</div>
         </div>
 
-        <div class="card stat-card">
-          <div class="card-label">Switch Strategy</div>
-          <div class="card-val" id="strategyText">Priority</div>
-          <div class="card-meta">Cooldown: <span id="cooldownText">60</span>m per quota limit</div>
+        <div class="metric-card">
+          <div class="metric-header">Strategy</div>
+          <div class="metric-title" id="strategyText">Priority</div>
+          <div class="metric-sub">Default cooldown: <span id="cooldownText">60</span>m</div>
         </div>
       </section>
 
-      <!-- Account Management Section -->
-      <section class="card section-card">
-        <div class="section-header">
+      <!-- Accounts Table Section -->
+      <section class="panel">
+        <div class="panel-header">
           <div>
-            <h2>Account Pool</h2>
-            <p class="section-desc">Accounts used by <code>zerog</code> to auto-rotate <code>agy</code> sessions when plan usage is exhausted.</p>
+            <h2 class="panel-title">Accounts</h2>
+            <p class="panel-subtitle">Accounts managed for automatic quota failover in agy sessions.</p>
           </div>
-          <div class="action-buttons">
-            <button class="btn btn-secondary" onclick="openCaptureModal()">📥 Capture Current</button>
-            <button class="btn btn-secondary" onclick="openAddKeyModal()">🔑 Add API Key</button>
-            <button class="btn btn-primary" onclick="openGoogleLoginModal()">➕ Sign in Google Account</button>
+          <div class="panel-actions">
+            <button class="btn btn-secondary btn-sm" onclick="openCaptureModal()">Capture Active</button>
+            <button class="btn btn-secondary btn-sm" onclick="openAddKeyModal()">Add API Key</button>
+            <button class="btn btn-primary btn-sm" onclick="openGoogleLoginModal()">Add Google Account</button>
           </div>
         </div>
 
-        <div class="table-responsive">
-          <table class="account-table">
+        <div class="table-container">
+          <table class="data-table">
             <thead>
               <tr>
-                <th>Priority</th>
+                <th style="width: 70px;">Prio</th>
                 <th>Account</th>
                 <th>Type</th>
                 <th>Status</th>
@@ -88,45 +83,45 @@
             </thead>
             <tbody id="accountsTableBody">
               <tr>
-                <td colspan="7" class="loading-cell">Loading accounts...</td>
+                <td colspan="7" class="cell-loading">Loading accounts...</td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- Event Feed & Terminal Helper -->
-      <div class="bottom-grid">
-        <section class="card section-card">
-          <div class="section-header">
-            <h3>Recent Auto-Switch Events</h3>
-            <button class="btn btn-sm btn-secondary" onclick="loadEvents()">↻ Refresh</button>
+      <!-- Event Feed & CLI Guide -->
+      <div class="grid-bottom">
+        <section class="panel">
+          <div class="panel-header">
+            <h3 class="panel-title-sm">Recent Events</h3>
+            <button class="btn btn-ghost btn-sm" onclick="loadEvents()">Refresh</button>
           </div>
-          <div class="events-list" id="eventsList">
-            <div class="empty-state">No recent events recorded.</div>
+          <div class="events-scroll" id="eventsList">
+            <div class="empty-state">No recent failover events recorded.</div>
           </div>
         </section>
 
-        <section class="card section-card cli-helper-card">
-          <div class="section-header">
-            <h3>CLI Quick Guide</h3>
+        <section class="panel">
+          <div class="panel-header">
+            <h3 class="panel-title-sm">Quick Commands</h3>
           </div>
-          <div class="cli-tips">
-            <div class="tip-item">
+          <div class="cli-list">
+            <div class="cli-row">
               <code>zerog</code>
-              <p>Launch interactive <code>agy</code> session with automatic account rotation.</p>
+              <span>Run interactive agy session with auto-failover</span>
             </div>
-            <div class="tip-item">
+            <div class="cli-row">
               <code>zerog -p "prompt"</code>
-              <p>Run a prompt turn; automatically retries with next account if quota limit is met.</p>
+              <span>Run a prompt turn; auto-switches if quota is reached</span>
             </div>
-            <div class="tip-item">
+            <div class="cli-row">
               <code>zerog accounts</code>
-              <p>View all accounts, statuses, and active failover priority.</p>
+              <span>List all accounts and cooldown timers in terminal</span>
             </div>
-            <div class="tip-item">
-              <code>zerog daemon start</code>
-              <p>Start background watcher for IDEs and direct CLI invocations.</p>
+            <div class="cli-row">
+              <code>zerog export [file]</code>
+              <span>Export account pool to JSON for another machine</span>
             </div>
           </div>
         </section>
@@ -135,117 +130,116 @@
   </div>
 
   <!-- Modal: Add API Key -->
-  <div class="modal-backdrop" id="addKeyModal">
-    <div class="modal">
-      <div class="modal-header">
+  <div class="modal-overlay" id="addKeyModal">
+    <div class="modal-box">
+      <div class="modal-top">
         <h3>Add Gemini API Key</h3>
-        <button class="modal-close" onclick="closeModal('addKeyModal')">&times;</button>
+        <button class="modal-btn-close" onclick="closeModal('addKeyModal')">&times;</button>
       </div>
       <form onsubmit="handleAddKeySubmit(event)">
-        <div class="form-group">
-          <label>Account ID / Slug</label>
+        <div class="field">
+          <label for="keyId">Identifier</label>
           <input type="text" id="keyId" required placeholder="e.g. gemini-key-2" pattern="[a-zA-Z0-9_\-]+">
         </div>
-        <div class="form-group">
-          <label>Display Name</label>
-          <input type="text" id="keyName" required placeholder="e.g. Project B API Key">
+        <div class="field">
+          <label for="keyName">Display Name</label>
+          <input type="text" id="keyName" required placeholder="e.g. Personal API Key">
         </div>
-        <div class="form-group">
-          <label>Gemini API Key</label>
+        <div class="field">
+          <label for="keySecret">Gemini API Key</label>
           <input type="password" id="keySecret" required placeholder="AIzaSy...">
-          <small class="form-hint">Obtain key from Google AI Studio</small>
         </div>
-        <div class="form-group">
-          <label>Priority (1 = highest)</label>
-          <input type="number" id="keyPriority" value="10" min="1" max="100">
+        <div class="field">
+          <label for="keyPriority">Priority</label>
+          <input type="number" id="keyPriority" value="1" min="1" max="100">
+          <span class="field-hint">Lower numbers have higher priority (1 = highest).</span>
         </div>
-        <div class="modal-actions">
+        <div class="modal-buttons">
           <button type="button" class="btn btn-secondary" onclick="closeModal('addKeyModal')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save API Key</button>
+          <button type="submit" class="btn btn-primary">Save Key</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- Modal: Google Sign-in -->
-  <div class="modal-backdrop" id="googleLoginModal">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>Sign In Another Google Account</h3>
-        <button class="modal-close" onclick="closeModal('googleLoginModal')">&times;</button>
+  <div class="modal-overlay" id="googleLoginModal">
+    <div class="modal-box">
+      <div class="modal-top">
+        <h3>Add Google Account</h3>
+        <button class="modal-btn-close" onclick="closeModal('googleLoginModal')">&times;</button>
       </div>
       <div class="modal-body">
-        <p>To register another Google account in the <code>zerog</code> pool:</p>
-        <ol class="step-list">
-          <li>Choose an identifier (e.g. <code>work</code>, <code>personal2</code>).</li>
-          <li>Run the login command below in your terminal. It backs up your active session and launches the browser to sign in.</li>
-          <li>Once authenticated, <code>zerog</code> captures the token into your pool!</li>
-        </ol>
-        <div class="code-box">
-          <code id="loginCliCmd">zerog login second-account</code>
-          <button class="btn btn-sm btn-secondary" onclick="copyLoginCmd()">Copy</button>
+        <p>Google OAuth requires a browser prompt. Run this command in your terminal:</p>
+        <div class="code-snippet">
+          <code id="loginCliCmd">zerog login account-name</code>
+          <button class="btn btn-secondary btn-sm" onclick="copyLoginCmd()">Copy</button>
         </div>
+        <p class="field-hint">Your browser will open. Once authenticated, zerog automatically captures credentials into your pool.</p>
       </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-secondary" onclick="closeModal('googleLoginModal')">Done</button>
+      <div class="modal-buttons">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('googleLoginModal')">Close</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Capture Session -->
-  <div class="modal-backdrop" id="captureModal">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>Capture Active Session</h3>
-        <button class="modal-close" onclick="closeModal('captureModal')">&times;</button>
+  <!-- Modal: Capture Active Session -->
+  <div class="modal-overlay" id="captureModal">
+    <div class="modal-box">
+      <div class="modal-top">
+        <h3>Capture Current Session</h3>
+        <button class="modal-btn-close" onclick="closeModal('captureModal')">&times;</button>
       </div>
       <form onsubmit="handleCaptureSubmit(event)">
-        <p>Capture whatever Google account is currently signed in to Antigravity on this machine.</p>
-        <div class="form-group">
-          <label>Account ID / Name</label>
+        <p class="field-hint" style="margin-bottom: 1rem;">Captures the token currently logged into Antigravity in your OS Keychain.</p>
+        <div class="field">
+          <label for="captureId">Account Identifier</label>
           <input type="text" id="captureId" required placeholder="e.g. primary">
         </div>
-        <div class="modal-actions">
+        <div class="modal-buttons">
           <button type="button" class="btn btn-secondary" onclick="closeModal('captureModal')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Capture Now</button>
+          <button type="submit" class="btn btn-primary">Capture</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- Modal: Settings -->
-  <div class="modal-backdrop" id="settingsModal">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>Auto-Switch Settings</h3>
-        <button class="modal-close" onclick="closeModal('settingsModal')">&times;</button>
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-box">
+      <div class="modal-top">
+        <h3>Settings</h3>
+        <button class="modal-btn-close" onclick="closeModal('settingsModal')">&times;</button>
       </div>
       <form onsubmit="handleSettingsSubmit(event)">
-        <div class="form-group">
-          <label>Switch Strategy</label>
+        <div class="field">
+          <label for="settingStrategy">Rotation Strategy</label>
           <select id="settingStrategy">
-            <option value="priority">Priority Order (Always use highest priority ready account)</option>
+            <option value="priority">Priority (Highest priority ready account first)</option>
             <option value="round_robin">Round-Robin (Rotate evenly among ready accounts)</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Quota Cooldown Duration (minutes)</label>
+        <div class="field">
+          <label for="settingCooldown">Default Cooldown (minutes)</label>
           <input type="number" id="settingCooldown" min="1" max="1440" value="60">
-          <small class="form-hint">Time before an exhausted account is considered eligible again.</small>
+          <span class="field-hint">Used when Google doesn't return a specific reset header.</span>
         </div>
-        <div class="form-group">
-          <label class="checkbox-label">
+        <div class="field">
+          <label class="checkbox-control">
             <input type="checkbox" id="settingNotifications" checked>
-            Enable macOS Desktop Notifications on Auto-Switch
+            <span>Desktop notifications on account switch</span>
           </label>
         </div>
-        <div class="modal-actions">
+        <div class="modal-buttons">
           <button type="button" class="btn btn-secondary" onclick="closeModal('settingsModal')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Settings</button>
+          <button type="submit" class="btn btn-primary">Save</button>
         </div>
       </form>
     </div>
   </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
 
   <script src="app.js"></script>
 </body>
