@@ -126,6 +126,12 @@ test('QuotaDetector pattern matching', () => {
   assert.ok(QuotaDetector.matchLogLine('E1006 22:58:07 quota_manager.go:45 RESOURCE_EXHAUSTED'));
   assert.ok(!QuotaDetector.matchLogLine('I1007 20:25:29.854036 249 quota_manager.go:45] doRefreshQuota: starting reload (force=true)'));
   assert.ok(!QuotaDetector.matchText('quota_manager.go:45] doRefreshQuota: starting reload'));
+
+  assert.strictEqual(QuotaDetector.parseResetMinutes('error: Individual quota reached. Resets in 114h8m53s.'), 6849);
+  assert.strictEqual(QuotaDetector.parseResetMinutes('Resets in 2h30m'), 150);
+  assert.strictEqual(QuotaDetector.parseResetMinutes('Resets in 45m'), 45);
+  assert.strictEqual(QuotaDetector.parseResetMinutes('Resets in 30s'), 1);
+  assert.strictEqual(QuotaDetector.parseResetMinutes('No reset time info'), null);
 });
 
 test('AgyLocator discovery and overrides', () => {
