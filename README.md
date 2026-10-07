@@ -1,74 +1,67 @@
 # zerog
 
-Account switcher for Google Antigravity CLI (`agy`). When your active account hits quota limits or rate limits (HTTP 429), `zerog` switches to the next account in your pool and resumes the session with `--continue`.
+[![npm](https://img.shields.io/npm/v/zerog?style=flat-square&color=black)](https://www.npmjs.com/package/zerog)
+[![license](https://img.shields.io/badge/license-MIT-black?style=flat-square)](LICENSE)
+[![node](https://img.shields.io/badge/node-%3E%3D16-black?style=flat-square)](https://nodejs.org)
 
-## Install
+Multi-account quota manager for Google Antigravity (`agy`).
+
+When an account hits rate limits or quota exhaustion (HTTP 429 / `RESOURCE_EXHAUSTED`), `zerog` swaps credentials and resumes your session (`--continue`) with the next account in the pool.
+
+## Installation
 
 ```bash
 npm install -g zerog
 ```
 
-Or run directly without installing:
+Or run on demand:
 
 ```bash
 npx zerog
 ```
 
-If `agy` is not already installed, `zerog` installs it automatically.
+*(If `agy` is not found on your system, `zerog` installs it automatically.)*
 
-## Quick Start
+## Usage
 
-1. Add accounts to your pool:
-
-```bash
-# Add a Google account (opens browser to sign in)
-zerog login personal
-
-# Or add a Gemini API key
-zerog add-key my-key AIzaSy...
-```
-
-2. Run `zerog` instead of `agy`:
+Add your accounts once:
 
 ```bash
-# Interactive session (auto-rotates accounts when quota runs out)
-zerog
-
-# Single prompt
-zerog -p "Fix the login bug"
+zerog login personal          # opens browser sign-in
+zerog login work
+zerog add-key dev-key <API_KEY>
 ```
 
-All standard `agy` flags and arguments work as expected.
+Then run `zerog` just like you would run `agy`:
+
+```bash
+zerog                         # interactive session
+zerog -p "write unit tests"   # single prompt turn
+```
+
+All `agy` flags and arguments pass through directly.
 
 ## Commands
 
-| Command | Description |
-|---|---|
-| `zerog` | Run `agy` with automatic account rotation |
-| `zerog accounts` | List accounts, priority, and cooldown status |
-| `zerog login <id>` | Sign into a Google account via browser |
-| `zerog add-key <id> <key>` | Add a Gemini API key |
-| `zerog use <id>` | Manually switch active account |
-| `zerog test <id>` | Verify account authentication with agy |
-| `zerog reset-cooldown <id>` | Clear cooldown for an account |
-| `zerog delete <id>` | Remove an account from pool |
-| `zerog export [file]` | Export pool to JSON |
-| `zerog import <file>` | Import pool from JSON |
-| `zerog web` | Open local web dashboard (`http://localhost:7890`) |
+```bash
+zerog accounts                # list pool, priorities & cooldown timers
+zerog use <id>                # switch active account manually
+zerog test <id>               # verify account auth against agy
+zerog reset-cooldown <id>     # clear cooldown
+zerog delete <id>             # remove account from pool
+zerog export accounts.json    # transfer accounts to another machine
+zerog import accounts.json    # import accounts on a new machine
+zerog web                     # open local web UI (localhost:7890)
+```
 
 ## Configuration
 
-Settings are stored in `~/.zerog/config.json`:
+Config lives in `~/.zerog/config.json`.
 
 ```bash
-# Switch strategy: "priority" or "round_robin"
-zerog config switch_strategy round_robin
-
-# Default cooldown duration (minutes)
-zerog config cooldown_minutes 60
-
-# Custom agy binary path
-zerog config agy_path /path/to/agy
+zerog config switch_strategy priority   # priority | round_robin
+zerog config cooldown_minutes 60        # default cooldown duration
+zerog config agy_path /path/to/agy      # custom agy binary location
 ```
 
 ## License
