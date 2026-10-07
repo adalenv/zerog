@@ -8,6 +8,21 @@ Multi-account quota manager for Google Antigravity (`agy`).
 
 When an account hits rate limits or quota exhaustion (HTTP 429 / `RESOURCE_EXHAUSTED`), `zerog` swaps credentials and resumes your session (`--continue`) with the next account in the pool.
 
+## How it works
+
+```mermaid
+flowchart TD
+    Run([Run zerog]) --> Exec[Execute agy]
+    Exec --> Check{Quota limit / 429?}
+    Check -->|No| Done([Session finished])
+    Check -->|Yes| Switch[Rotate to next account in pool]
+    Switch --> Available{Ready account in pool?}
+    Available -->|Yes| Resume["Swap credentials & resume with --continue"]
+    Resume --> Exec
+    Available -->|All exhausted| Wait[Wait until cooldown resets or exit]
+    Wait -->|Restored| Resume
+```
+
 ## Installation
 
 ```bash
