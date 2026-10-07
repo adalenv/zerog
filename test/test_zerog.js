@@ -204,3 +204,60 @@ test('Export and import accounts', () => {
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
   }
 });
+
+test('settings.json auto-reconciliation and syncActiveState', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zerog-test-'));
+  const origHome = process.env.HOME;
+  process.env.HOME = tmpDir;
+
+  try {
+    const settingsPath = AccountManager.settingsPath;
+    const settingsDir = path.dirname(settingsPath);
+    fs.mkdirSync(settingsDir, { recursive: true });
+
+    // Pre-seed settings.json with lingering modelProvider: "gemini"
+    fs.writeFileSync(settingsPath, JSON.stringify({ modelProvider: 'gemini', trustedWorkspaces: ['/tmp'] }, null, 2));
+
+    const manager = new AccountManager();
+    const googleAcc = new Account({
+      id: 'google-acc',
+      name: 'Google Test',
+      email: 'test@google.com',
+      type: 'google',
+      priority: 1
+    });
+    manager.saveAccount(googleAcc);
+    manager.config.activeAccount = 'google-acc';
+
+    // syncActiveState should strip modelProvider for Google accounts
+    manager.syncActiveState();
+    let currentSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    assert.strictEqual(currentSettings.modelProvider, undefined);
+    assert.deepStrictEqual(currentSettings.trustedWorkspaces, ['/tmp']);
+
+    // Switch to gemini-api-key account
+    const apiKeyAcc = new Account({
+      id: 'api-acc',
+      name: 'API Key Test',
+      email: 'apikey@test.com',
+      type: 'gemini-api-key',
+      priority: 2,
+      data: { api_key: 'AIzaSyTest123' }
+    });
+    manager.saveAccount(apiKeyAcc);
+    manager.config.activeAccount = 'api-acc';
+
+    manager.syncActiveState();
+    currentSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    assert.strictEqual(currentSettings.modelProvider, 'gemini');
+
+    // Switch back to google account
+    manager.config.activeAccount = 'google-acc';
+    manager.syncActiveState();
+    currentSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    assert.strictEqual(currentSettings.modelProvider, undefined);
+  } finally {
+    process.env.HOME = origHome;
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+  }
+});
