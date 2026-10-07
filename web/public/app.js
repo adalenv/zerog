@@ -235,19 +235,28 @@ function renderAccounts(accounts, activeAccount) {
       ? '<span class="badge badge-google">Google</span>'
       : '<span class="badge badge-key">API Key</span>';
 
+    const remainingSec = acc.exhausted_until ? Math.max(0, Math.floor((new Date(acc.exhausted_until).getTime() - Date.now()) / 1000)) : 0;
     const limits = acc.limits || {};
     const fiveHour = limits.five_hour || {};
     const weekly = limits.weekly || {};
 
+    const is5hExhausted = (fiveHour.is_exhausted !== undefined)
+      ? fiveHour.is_exhausted
+      : (isExhausted && (acc.quota_type === '5_hour' || (remainingSec <= 5 * 3600 && remainingSec > 0)));
+
+    const isWeeklyExhausted = (weekly.is_exhausted !== undefined)
+      ? weekly.is_exhausted
+      : (isExhausted && (acc.quota_type === 'weekly' || remainingSec > 5 * 3600));
+
     let fiveHourBadge = '';
-    if (fiveHour.is_exhausted && acc.exhausted_until) {
+    if (is5hExhausted && acc.exhausted_until) {
       fiveHourBadge = `<span class="badge badge-limit" title="0m remaining"><span class="cooldown-timer" data-until="${escapeHtml(acc.exhausted_until)}" data-prefix="0m · Resets in ">0m · Resets in ${getRemainingTime(acc.exhausted_until)}</span></span>`;
     } else {
       fiveHourBadge = '<span class="badge badge-remaining">5h remaining</span>';
     }
 
     let weeklyBadge = '';
-    if (weekly.is_exhausted && acc.exhausted_until) {
+    if (isWeeklyExhausted && acc.exhausted_until) {
       weeklyBadge = `<span class="badge badge-limit" title="0h remaining"><span class="cooldown-timer" data-until="${escapeHtml(acc.exhausted_until)}" data-prefix="0h · Resets in ">0h · Resets in ${getRemainingTime(acc.exhausted_until)}</span></span>`;
     } else {
       weeklyBadge = '<span class="badge badge-remaining">7d remaining</span>';
