@@ -281,9 +281,11 @@ function getRemainingTime(iso) {
   if (!iso) return '—';
   const diffSec = Math.max(0, Math.floor((new Date(iso).getTime() - Date.now()) / 1000));
   if (diffSec <= 0) return 'Expired';
-  const h = Math.floor(diffSec / 3600);
+  const d = Math.floor(diffSec / 86400);
+  const h = Math.floor((diffSec % 86400) / 3600);
   const m = Math.floor((diffSec % 3600) / 60);
   const s = diffSec % 60;
+  if (d > 0) return `${d}d ${h}h ${m}m`;
   if (h > 0) return `${h}h ${m}m ${s}s`;
   return `${m}m ${s}s`;
 }
