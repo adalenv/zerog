@@ -392,6 +392,15 @@ body {
   padding: 2px 7px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.timer-sub {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-left: 3px;
+  font-family: var(--font-mono);
+  font-weight: 400;
 }
 
 .badge-google {

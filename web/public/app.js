@@ -169,7 +169,7 @@ function renderStatus(status) {
   if (fiveHourTitle && fiveHourSub) {
     if (fiveHour.is_exhausted) {
       fiveHourTitle.innerHTML = `<span style="color: var(--danger); font-size: 1.15rem;">0m remaining</span>`;
-      fiveHourSub.innerHTML = `<span class="cooldown-timer" data-until="${active ? active.exhausted_until : ''}" data-prefix="Resets in " style="color: var(--danger); font-family: var(--font-mono);">${fiveHour.label}</span> · ${in5hCount} in pool limit`;
+      fiveHourSub.innerHTML = `Resets in <span class="cooldown-timer" data-until="${active ? (active.exhausted_until || '') : ''}" style="color: var(--danger); font-family: var(--font-mono);">${active && active.exhausted_until ? getRemainingTime(active.exhausted_until) : '—'}</span> · ${in5hCount} in pool limit`;
     } else {
       fiveHourTitle.innerHTML = `<span style="color: #3fb950; font-size: 1.15rem;">5h remaining</span>`;
       fiveHourSub.textContent = `Full 5-hour rolling window remaining · ${in5hCount} in pool limit`;
@@ -179,7 +179,7 @@ function renderStatus(status) {
   if (weeklyTitle && weeklySub) {
     if (weekly.is_exhausted) {
       weeklyTitle.innerHTML = `<span style="color: var(--danger); font-size: 1.15rem;">0h remaining</span>`;
-      weeklySub.innerHTML = `<span class="cooldown-timer" data-until="${active ? active.exhausted_until : ''}" data-prefix="Resets in " style="color: var(--danger); font-family: var(--font-mono);">${weekly.label}</span> · ${inWeeklyCount} in pool limit`;
+      weeklySub.innerHTML = `Resets in <span class="cooldown-timer" data-until="${active ? (active.exhausted_until || '') : ''}" style="color: var(--danger); font-family: var(--font-mono);">${active && active.exhausted_until ? getRemainingTime(active.exhausted_until) : '—'}</span> · ${inWeeklyCount} in pool limit`;
     } else {
       weeklyTitle.innerHTML = `<span style="color: #3fb950; font-size: 1.15rem;">7d remaining</span>`;
       weeklySub.textContent = `Full 7-day individual quota remaining · ${inWeeklyCount} in pool limit`;
@@ -209,6 +209,8 @@ function renderStatus(status) {
   if (cdEl) cdEl.textContent = status.cooldown_minutes || 60;
 }
 
+let lastAccountsFingerprint = '';
+
 // Render Accounts Data Table
 function renderAccounts(accounts, activeAccount) {
   const tbody = document.getElementById('accountsTableBody');
@@ -216,6 +218,7 @@ function renderAccounts(accounts, activeAccount) {
 
   const list = Array.isArray(accounts) ? accounts : (accounts && accounts.accounts ? accounts.accounts : []);
   if (list.length === 0) {
+    lastAccountsFingerprint = 'empty';
     tbody.innerHTML = `
       <tr>
         <td colspan="8" class="cell-empty">No accounts in pool. Click "+ Add Account" above to add one.</td>
@@ -226,6 +229,23 @@ function renderAccounts(accounts, activeAccount) {
 
   const activeId = (activeAccount && typeof activeAccount === 'object' ? activeAccount.id : activeAccount)
     || (currentStatus && currentStatus.active_account ? currentStatus.active_account.id : null);
+
+  // Avoid unnecessary DOM tear-down and flickering if accounts data has not changed
+  const fingerprint = JSON.stringify(list.map(a => ({
+    id: a.id,
+    p: a.priority,
+    s: a.status,
+    u: a.exhausted_until,
+    act: a.id === activeId,
+    lim: a.limits
+  })));
+
+  if (fingerprint === lastAccountsFingerprint) {
+    // Data unchanged: smoothly tick countdown timers in place without touching table DOM
+    updateCooldownTickers();
+    return;
+  }
+  lastAccountsFingerprint = fingerprint;
 
   tbody.innerHTML = list.map(acc => {
     const isActive = (acc.id === activeId) || (acc.status === 'active');
@@ -250,21 +270,21 @@ function renderAccounts(accounts, activeAccount) {
 
     let fiveHourBadge = '';
     if (is5hExhausted && acc.exhausted_until) {
-      fiveHourBadge = `<span class="badge badge-limit" title="0m remaining"><span class="cooldown-timer" data-until="${escapeHtml(acc.exhausted_until)}" data-prefix="0m · Resets in ">0m · Resets in ${getRemainingTime(acc.exhausted_until)}</span></span>`;
+      fiveHourBadge = `<span class="badge badge-limit">0m remaining <span class="timer-sub">(resets in <span class="cooldown-timer" data-until="${escapeHtml(acc.exhausted_until)}">${getRemainingTime(acc.exhausted_until)}</span>)</span></span>`;
     } else {
       fiveHourBadge = '<span class="badge badge-remaining">5h remaining</span>';
     }
 
     let weeklyBadge = '';
     if (isWeeklyExhausted && acc.exhausted_until) {
-      weeklyBadge = `<span class="badge badge-limit" title="0h remaining"><span class="cooldown-timer" data-until="${escapeHtml(acc.exhausted_until)}" data-prefix="0h · Resets in ">0h · Resets in ${getRemainingTime(acc.exhausted_until)}</span></span>`;
+      weeklyBadge = `<span class="badge badge-limit">0h remaining <span class="timer-sub">(resets in <span class="cooldown-timer" data-until="${escapeHtml(acc.exhausted_until)}">${getRemainingTime(acc.exhausted_until)}</span>)</span></span>`;
     } else {
       weeklyBadge = '<span class="badge badge-remaining">7d remaining</span>';
     }
 
     let totalBadge = '';
-    if (isExhausted) {
-      totalBadge = `<span class="badge badge-limit"><span class="cooldown-timer" data-until="${escapeHtml(acc.exhausted_until)}" data-prefix="0% · Resets in ">0% · Resets in ${getRemainingTime(acc.exhausted_until)}</span></span>`;
+    if (isExhausted && acc.exhausted_until) {
+      totalBadge = `<span class="badge badge-limit">0% remaining <span class="timer-sub">(resets in <span class="cooldown-timer" data-until="${escapeHtml(acc.exhausted_until)}">${getRemainingTime(acc.exhausted_until)}</span>)</span></span>`;
     } else if (isActive) {
       totalBadge = '<span class="badge badge-active">Active · 100% remaining</span>';
     } else {
@@ -359,12 +379,17 @@ function formatRelativeTime(iso) {
   return `${Math.floor(diffSec / 86400)}d ago`;
 }
 
-// Live Cooldown Countdown Ticker
-setInterval(() => {
+function updateCooldownTickers() {
   document.querySelectorAll('.cooldown-timer[data-until]').forEach(el => {
-    el.textContent = getRemainingTime(el.getAttribute('data-until'));
+    const until = el.getAttribute('data-until');
+    if (until) {
+      el.textContent = getRemainingTime(until);
+    }
   });
-}, 1000);
+}
+
+// Live Cooldown Countdown Ticker
+setInterval(updateCooldownTickers, 1000);
 
 // Account Actions
 async function useAccount(id) {
