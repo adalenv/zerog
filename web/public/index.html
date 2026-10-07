@@ -42,21 +42,21 @@
         </div>
 
         <div class="metric-card" id="card5Hour">
-          <div class="metric-header">5-Hour Rolling Limit</div>
-          <div class="metric-title" id="fiveHourStatusText">Available</div>
-          <div class="metric-sub" id="fiveHourSubText">Short-term request window · <span id="poolIn5hCount">0</span> in limit</div>
+          <div class="metric-header">5-Hour Remaining</div>
+          <div class="metric-title" id="fiveHourStatusText">5h remaining</div>
+          <div class="metric-sub" id="fiveHourSubText">Full 5-hour rolling window · <span id="poolIn5hCount">0</span> in limit</div>
         </div>
 
         <div class="metric-card" id="cardWeekly">
-          <div class="metric-header">Weekly Quota Limit</div>
-          <div class="metric-title" id="weeklyStatusText">Available</div>
-          <div class="metric-sub" id="weeklySubText">7-day individual quota · <span id="poolInWeeklyCount">0</span> in limit</div>
+          <div class="metric-header">Weekly Remaining</div>
+          <div class="metric-title" id="weeklyStatusText">7d remaining</div>
+          <div class="metric-sub" id="weeklySubText">Full 7-day individual quota · <span id="poolInWeeklyCount">0</span> in limit</div>
         </div>
 
         <div class="metric-card">
-          <div class="metric-header">Total Pool Limit</div>
-          <div class="metric-title"><span id="poolReadyCount">0</span> / <span id="poolTotalCount">0</span> <span class="metric-sub-inline">ready</span></div>
-          <div class="metric-sub"><span id="poolExhaustedCount">0</span> in cooldown · Strategy: <span id="strategyText">Priority</span></div>
+          <div class="metric-header">Total Pool Remaining</div>
+          <div class="metric-title"><span id="poolReadyCount">0</span> / <span id="poolTotalCount">0</span> <span class="metric-sub-inline">remaining</span></div>
+          <div class="metric-sub"><span id="poolRemainingPercent">100%</span> pool capacity remaining · <span id="poolExhaustedCount">0</span> in cooldown</div>
         </div>
       </section>
 
@@ -79,9 +79,9 @@
                 <th style="width: 55px;">Prio</th>
                 <th>Account</th>
                 <th>Type</th>
-                <th>5-Hour Limit</th>
-                <th>Weekly Limit</th>
-                <th>Total Status</th>
+                <th>5-Hour Remaining</th>
+                <th>Weekly Remaining</th>
+                <th>Total Remaining</th>
                 <th>Last Used</th>
                 <th class="text-right">Actions</th>
               </tr>

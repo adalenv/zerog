@@ -238,7 +238,7 @@ ${Notifier.BOLD}BEHAVIOR:${Notifier.RESET}
       return text + ' '.repeat(Math.max(0, width - visible.length));
     };
 
-    console.log(`\n${Notifier.BOLD}PRIO  STATUS    TYPE     ID              5H-LIMIT    WEEKLY-LIMIT    RESET-IN       EMAIL${Notifier.RESET}`);
+    console.log(`\n${Notifier.BOLD}PRIO  STATUS    TYPE     ID              5H-REMAINING  WEEKLY-REMAIN   RESET-IN       EMAIL${Notifier.RESET}`);
     console.log('─'.repeat(100));
 
     for (const acc of accounts) {
@@ -257,8 +257,8 @@ ${Notifier.BOLD}BEHAVIOR:${Notifier.RESET}
       const statCol = padAnsi(statusStr, 9);
       const typeStr = padAnsi(acc.type === 'google' ? 'Google' : 'API Key', 8);
       const idStr = padAnsi(acc.id, 15);
-      const fiveHourStr = padAnsi(limits.five_hour.is_exhausted ? `${Notifier.YELLOW}Exhausted${Notifier.RESET}` : `${Notifier.GREEN}OK${Notifier.RESET}`, 12);
-      const weeklyStr = padAnsi(limits.weekly.is_exhausted ? `${Notifier.RED}Exhausted${Notifier.RESET}` : `${Notifier.GREEN}OK${Notifier.RESET}`, 15);
+      const fiveHourStr = padAnsi(limits.five_hour.is_exhausted ? `${Notifier.YELLOW}0m (limit)${Notifier.RESET}` : `${Notifier.GREEN}5h rem${Notifier.RESET}`, 14);
+      const weeklyStr = padAnsi(limits.weekly.is_exhausted ? `${Notifier.RED}0h (limit)${Notifier.RESET}` : `${Notifier.GREEN}7d rem${Notifier.RESET}`, 16);
       const cooldown = padAnsi(acc.isExhausted() ? `${acc.quotaType === '5_hour' ? Notifier.YELLOW : Notifier.RED}${acc.remainingCooldownHuman()}${Notifier.RESET}` : '-', 14);
       const emailStr = acc.email.slice(0, 30);
 
