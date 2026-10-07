@@ -15,6 +15,20 @@ const API = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   }).then(r => r.json()),
+  addToken: (payload) => fetch('/api/accounts/add-token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(r => r.json()),
+  startGoogleLogin: (id, name) => fetch('/api/accounts/login/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, name })
+  }).then(r => r.json()),
+  getGoogleLoginStatus: () => fetch('/api/accounts/login/status').then(r => r.json()),
+  cancelGoogleLogin: () => fetch('/api/accounts/login/cancel', {
+    method: 'POST'
+  }).then(r => r.json()),
   captureCurrent: (id) => fetch('/api/accounts/capture', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -44,6 +58,7 @@ const API = {
 
 let currentStatus = null;
 let currentAccounts = [];
+let loginPollTimer = null;
 
 // Toast Notifications
 function showToast(message, type = 'info') {
@@ -167,7 +182,7 @@ function renderAccounts(accounts, activeAccount) {
   if (list.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="cell-empty">No accounts in pool. Click "Add Google Account" or "Add API Key" above.</td>
+        <td colspan="7" class="cell-empty">No accounts in pool. Click "+ Add Account" above to add one.</td>
       </tr>
     `;
     return;
@@ -376,9 +391,26 @@ function closeModal(id) {
   if (el) el.classList.remove('open');
 }
 
-function openAddKeyModal() { openModal('addKeyModal'); }
-function openGoogleLoginModal() { openModal('googleLoginModal'); }
-function openCaptureModal() { openModal('captureModal'); }
+// Unified Add Account Modal & Tabs
+function switchAddTab(tabName) {
+  const tabs = ['google', 'key', 'capture', 'token'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    const pane = document.getElementById(`pane${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    if (btn) btn.classList.toggle('active', t === tabName);
+    if (pane) pane.classList.toggle('active', t === tabName);
+  });
+}
+
+function openAddAccountModal(tab = 'google') {
+  switchAddTab(tab);
+  openModal('addAccountModal');
+}
+
+// Legacy Aliases for backwards-compatibility
+function openGoogleLoginModal() { openAddAccountModal('google'); }
+function openAddKeyModal() { openAddAccountModal('key'); }
+function openCaptureModal() { openAddAccountModal('capture'); }
 
 function openSettingsModal() {
   if (currentStatus) {
@@ -405,7 +437,105 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   });
 });
 
-// Form Submissions
+// Google OAuth Sign-In Handlers
+async function handleGoogleLoginSubmit(e) {
+  e.preventDefault();
+  const idInput = document.getElementById('googleLoginId');
+  const nameInput = document.getElementById('googleLoginName');
+  const id = idInput ? idInput.value.trim() : '';
+  const name = nameInput ? nameInput.value.trim() : '';
+
+  if (!id) {
+    showToast('Please enter an account identifier', 'error');
+    return;
+  }
+
+  const progressEl = document.getElementById('googleLoginProgress');
+  const buttonsEl = document.getElementById('googleLoginButtons');
+  const cancelButtonsEl = document.getElementById('googleCancelButtons');
+  const msgEl = document.getElementById('loginProgressMsg');
+  const titleEl = document.getElementById('loginProgressTitle');
+  const authUrlCont = document.getElementById('loginAuthUrlContainer');
+  const authUrlLink = document.getElementById('loginAuthUrlLink');
+
+  try {
+    const res = await API.startGoogleLogin(id, name);
+    if (res.error) throw new Error(res.error);
+
+    // Show Progress State
+    if (progressEl) progressEl.style.display = 'block';
+    if (buttonsEl) buttonsEl.style.display = 'none';
+    if (cancelButtonsEl) cancelButtonsEl.style.display = 'flex';
+    if (titleEl) titleEl.textContent = 'Browser opened for authentication...';
+    if (msgEl) msgEl.textContent = 'Please complete Google sign-in in your browser window.';
+    if (authUrlCont) authUrlCont.style.display = 'none';
+
+    showToast('Browser opened. Complete Google sign-in to continue.', 'info');
+
+    if (loginPollTimer) clearInterval(loginPollTimer);
+    loginPollTimer = setInterval(async () => {
+      try {
+        const statusRes = await API.getGoogleLoginStatus();
+        if (statusRes.authUrl && authUrlCont && authUrlLink) {
+          authUrlCont.style.display = 'block';
+          authUrlLink.href = statusRes.authUrl;
+        }
+        if (statusRes.message && msgEl) {
+          msgEl.textContent = statusRes.message;
+        }
+
+        if (statusRes.status === 'success') {
+          clearInterval(loginPollTimer);
+          loginPollTimer = null;
+          resetGoogleLoginForm();
+          closeModal('addAccountModal');
+          showToast(`Account '${id}' registered successfully!`, 'success');
+          await refreshAll();
+        } else if (statusRes.status === 'error') {
+          clearInterval(loginPollTimer);
+          loginPollTimer = null;
+          resetGoogleLoginForm();
+          showToast('Sign-in failed: ' + (statusRes.message || 'Unknown error'), 'error');
+        } else if (statusRes.status === 'cancelled') {
+          clearInterval(loginPollTimer);
+          loginPollTimer = null;
+          resetGoogleLoginForm();
+          showToast('Sign-in was cancelled', 'info');
+        }
+      } catch (pollErr) {
+        console.error('Login status poll failed:', pollErr);
+      }
+    }, 1500);
+
+  } catch (err) {
+    showToast('Failed to start Google sign-in: ' + err.message, 'error');
+  }
+}
+
+async function cancelGoogleLogin() {
+  if (loginPollTimer) {
+    clearInterval(loginPollTimer);
+    loginPollTimer = null;
+  }
+  try {
+    await API.cancelGoogleLogin();
+  } catch {}
+  resetGoogleLoginForm();
+  showToast('Sign-in cancelled', 'info');
+}
+
+function resetGoogleLoginForm() {
+  const form = document.getElementById('googleLoginForm');
+  if (form) form.reset();
+  const progressEl = document.getElementById('googleLoginProgress');
+  const buttonsEl = document.getElementById('googleLoginButtons');
+  const cancelButtonsEl = document.getElementById('googleCancelButtons');
+  if (progressEl) progressEl.style.display = 'none';
+  if (buttonsEl) buttonsEl.style.display = 'flex';
+  if (cancelButtonsEl) cancelButtonsEl.style.display = 'none';
+}
+
+// Form Submissions: API Key, Capture, Token
 async function handleAddKeySubmit(e) {
   e.preventDefault();
   const id = document.getElementById('keyId').value.trim();
@@ -416,7 +546,7 @@ async function handleAddKeySubmit(e) {
   try {
     const res = await API.addKey({ id, name, api_key, priority });
     if (res.error) throw new Error(res.error);
-    closeModal('addKeyModal');
+    closeModal('addAccountModal');
     e.target.reset();
     showToast(`Added API Key '${id}'`, 'success');
     await refreshAll();
@@ -432,12 +562,31 @@ async function handleCaptureSubmit(e) {
   try {
     const res = await API.captureCurrent(id);
     if (res.error) throw new Error(res.error);
-    closeModal('captureModal');
+    closeModal('addAccountModal');
     e.target.reset();
     showToast(`Session captured as '${id}'`, 'success');
     await refreshAll();
   } catch (err) {
     showToast('Failed to capture session: ' + err.message, 'error');
+  }
+}
+
+async function handleTokenSubmit(e) {
+  e.preventDefault();
+  const id = document.getElementById('tokenId').value.trim();
+  const name = document.getElementById('tokenName').value.trim();
+  const payload = document.getElementById('tokenPayload').value.trim();
+  const priority = parseInt(document.getElementById('tokenPriority').value, 10) || 1;
+
+  try {
+    const res = await API.addToken({ id, name, payload, priority });
+    if (res.error) throw new Error(res.error);
+    closeModal('addAccountModal');
+    e.target.reset();
+    showToast(`Account '${id}' imported successfully`, 'success');
+    await refreshAll();
+  } catch (err) {
+    showToast('Failed to import token: ' + err.message, 'error');
   }
 }
 
@@ -456,16 +605,6 @@ async function handleSettingsSubmit(e) {
   } catch (err) {
     showToast('Failed to save settings: ' + err.message, 'error');
   }
-}
-
-function copyLoginCmd() {
-  const codeEl = document.getElementById('loginCliCmd');
-  const code = codeEl ? codeEl.textContent.trim() : 'zerog login account-name';
-  navigator.clipboard.writeText(code).then(() => {
-    showToast(`Copied to clipboard: ${code}`, 'info');
-  }).catch(() => {
-    showToast('Failed to copy to clipboard', 'error');
-  });
 }
 
 function escapeHtml(str) {

@@ -62,9 +62,7 @@
             <p class="panel-subtitle">Accounts managed for automatic quota failover in agy sessions.</p>
           </div>
           <div class="panel-actions">
-            <button class="btn btn-secondary btn-sm" onclick="openCaptureModal()">Capture Active</button>
-            <button class="btn btn-secondary btn-sm" onclick="openAddKeyModal()">Add API Key</button>
-            <button class="btn btn-primary btn-sm" onclick="openGoogleLoginModal()">Add Google Account</button>
+            <button class="btn btn-primary btn-sm" onclick="openAddAccountModal()">+ Add Account</button>
           </div>
         </div>
 
@@ -129,78 +127,138 @@
     </main>
   </div>
 
-  <!-- Modal: Add API Key -->
-  <div class="modal-overlay" id="addKeyModal">
-    <div class="modal-box">
+  <!-- Modal: Add Account (Unified) -->
+  <div class="modal-overlay" id="addAccountModal">
+    <div class="modal-box modal-lg">
       <div class="modal-top">
-        <h3>Add Gemini API Key</h3>
-        <button class="modal-btn-close" onclick="closeModal('addKeyModal')">&times;</button>
+        <h3>Add Account to Pool</h3>
+        <button class="modal-btn-close" onclick="closeModal('addAccountModal')">&times;</button>
       </div>
-      <form onsubmit="handleAddKeySubmit(event)">
-        <div class="field">
-          <label for="keyId">Identifier</label>
-          <input type="text" id="keyId" required placeholder="e.g. gemini-key-2" pattern="[a-zA-Z0-9_\-]+">
-        </div>
-        <div class="field">
-          <label for="keyName">Display Name</label>
-          <input type="text" id="keyName" required placeholder="e.g. Personal API Key">
-        </div>
-        <div class="field">
-          <label for="keySecret">Gemini API Key</label>
-          <input type="password" id="keySecret" required placeholder="AIzaSy...">
-        </div>
-        <div class="field">
-          <label for="keyPriority">Priority</label>
-          <input type="number" id="keyPriority" value="1" min="1" max="100">
-          <span class="field-hint">Lower numbers have higher priority (1 = highest).</span>
-        </div>
-        <div class="modal-buttons">
-          <button type="button" class="btn btn-secondary" onclick="closeModal('addKeyModal')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Key</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
-  <!-- Modal: Google Sign-in -->
-  <div class="modal-overlay" id="googleLoginModal">
-    <div class="modal-box">
-      <div class="modal-top">
-        <h3>Add Google Account</h3>
-        <button class="modal-btn-close" onclick="closeModal('googleLoginModal')">&times;</button>
+      <!-- Navigation Tabs -->
+      <div class="modal-tabs">
+        <button type="button" class="tab-btn active" id="tabBtnGoogle" onclick="switchAddTab('google')">Google OAuth</button>
+        <button type="button" class="tab-btn" id="tabBtnKey" onclick="switchAddTab('key')">Gemini API Key</button>
+        <button type="button" class="tab-btn" id="tabBtnCapture" onclick="switchAddTab('capture')">Capture Keychain</button>
+        <button type="button" class="tab-btn" id="tabBtnToken" onclick="switchAddTab('token')">Import Token</button>
       </div>
-      <div class="modal-body">
-        <p>Google OAuth requires a browser prompt. Run this command in your terminal:</p>
-        <div class="code-snippet">
-          <code id="loginCliCmd">zerog login account-name</code>
-          <button class="btn btn-secondary btn-sm" onclick="copyLoginCmd()">Copy</button>
-        </div>
-        <p class="field-hint">Your browser will open. Once authenticated, zerog automatically captures credentials into your pool.</p>
-      </div>
-      <div class="modal-buttons">
-        <button type="button" class="btn btn-secondary" onclick="closeModal('googleLoginModal')">Close</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- Modal: Capture Active Session -->
-  <div class="modal-overlay" id="captureModal">
-    <div class="modal-box">
-      <div class="modal-top">
-        <h3>Capture Current Session</h3>
-        <button class="modal-btn-close" onclick="closeModal('captureModal')">&times;</button>
+      <!-- Tab: Google OAuth -->
+      <div class="tab-pane active" id="paneGoogle">
+        <form id="googleLoginForm" onsubmit="handleGoogleLoginSubmit(event)">
+          <div class="callout-box">
+            Signs into a Google Account via browser OAuth. Once authenticated, credentials are automatically captured into your pool.
+          </div>
+          <div class="field">
+            <label for="googleLoginId">Account Identifier</label>
+            <input type="text" id="googleLoginId" required placeholder="e.g. work, personal, account4" pattern="[a-zA-Z0-9_\-]+">
+            <span class="field-hint">A unique alphanumeric name for this account.</span>
+          </div>
+          <div class="field">
+            <label for="googleLoginName">Display Name (optional)</label>
+            <input type="text" id="googleLoginName" placeholder="e.g. Work Google Account">
+          </div>
+
+          <!-- Progress state when logging in -->
+          <div id="googleLoginProgress" style="display: none;">
+            <div class="progress-banner">
+              <div class="spinner"></div>
+              <div class="progress-banner-text">
+                <div class="progress-banner-title" id="loginProgressTitle">Authentication in progress...</div>
+                <div class="progress-banner-sub" id="loginProgressMsg">Please complete sign-in in the opened browser window.</div>
+                <div id="loginAuthUrlContainer" style="display: none; margin-top: 6px;">
+                  <a id="loginAuthUrlLink" href="#" target="_blank" style="color: var(--accent); font-size: 12px; text-decoration: underline;">Open sign-in URL manually ↗</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-buttons" id="googleLoginButtons">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('addAccountModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btnStartGoogleLogin">Start Sign-In</button>
+          </div>
+
+          <div class="modal-buttons" id="googleCancelButtons" style="display: none;">
+            <button type="button" class="btn btn-danger btn-sm" onclick="cancelGoogleLogin()">Cancel Sign-In</button>
+          </div>
+        </form>
       </div>
-      <form onsubmit="handleCaptureSubmit(event)">
-        <p class="field-hint" style="margin-bottom: 1rem;">Captures the token currently logged into Antigravity in your OS Keychain.</p>
-        <div class="field">
-          <label for="captureId">Account Identifier</label>
-          <input type="text" id="captureId" required placeholder="e.g. primary">
-        </div>
-        <div class="modal-buttons">
-          <button type="button" class="btn btn-secondary" onclick="closeModal('captureModal')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Capture</button>
-        </div>
-      </form>
+
+      <!-- Tab: Gemini API Key -->
+      <div class="tab-pane" id="paneKey">
+        <form onsubmit="handleAddKeySubmit(event)">
+          <div class="callout-box">
+            Add a Gemini Developer API key from Google AI Studio. Used as fallback or primary model provider.
+          </div>
+          <div class="field">
+            <label for="keyId">Account Identifier</label>
+            <input type="text" id="keyId" required placeholder="e.g. gemini-key-1" pattern="[a-zA-Z0-9_\-]+">
+          </div>
+          <div class="field">
+            <label for="keyName">Display Name</label>
+            <input type="text" id="keyName" required placeholder="e.g. Personal API Key">
+          </div>
+          <div class="field">
+            <label for="keySecret">Gemini API Key</label>
+            <input type="password" id="keySecret" required placeholder="AIzaSy...">
+          </div>
+          <div class="field">
+            <label for="keyPriority">Priority</label>
+            <input type="number" id="keyPriority" value="1" min="1" max="100">
+            <span class="field-hint">Lower numbers have higher priority (1 = highest).</span>
+          </div>
+          <div class="modal-buttons">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('addAccountModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Key</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tab: Capture Keychain -->
+      <div class="tab-pane" id="paneCapture">
+        <form onsubmit="handleCaptureSubmit(event)">
+          <div class="callout-box">
+            Captures the active token currently authenticated in Antigravity in your OS Keychain.
+          </div>
+          <div class="field">
+            <label for="captureId">Account Identifier</label>
+            <input type="text" id="captureId" required placeholder="e.g. primary">
+          </div>
+          <div class="modal-buttons">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('addAccountModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Capture Token</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tab: Import Token -->
+      <div class="tab-pane" id="paneToken">
+        <form onsubmit="handleTokenSubmit(event)">
+          <div class="callout-box">
+            Import an account by pasting raw keyring payload (`go-keyring-base64:...`) or exported account JSON.
+          </div>
+          <div class="field">
+            <label for="tokenId">Account Identifier</label>
+            <input type="text" id="tokenId" required placeholder="e.g. laptop-token" pattern="[a-zA-Z0-9_\-]+">
+          </div>
+          <div class="field">
+            <label for="tokenName">Display Name (optional)</label>
+            <input type="text" id="tokenName" placeholder="e.g. Imported Account">
+          </div>
+          <div class="field">
+            <label for="tokenPayload">Token / JSON Payload</label>
+            <textarea id="tokenPayload" required rows="4" style="width: 100%; background: #0d1117; border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 11px; outline: none; resize: vertical;" placeholder="go-keyring-base64:eyJ..."></textarea>
+          </div>
+          <div class="field">
+            <label for="tokenPriority">Priority</label>
+            <input type="number" id="tokenPriority" value="1" min="1" max="100">
+          </div>
+          <div class="modal-buttons">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('addAccountModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Import Account</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 

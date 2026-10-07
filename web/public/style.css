@@ -560,6 +560,100 @@ body {
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
 }
 
+.modal-box.modal-lg {
+  max-width: 520px;
+}
+
+.modal-tabs {
+  display: flex;
+  background: #0d1117;
+  border-bottom: 1px solid var(--border);
+  padding: 0 0.75rem;
+  gap: 2px;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+.callout-box {
+  background: #0d1117;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  line-height: 1.45;
+}
+
+.progress-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #0d1117;
+  border: 1px solid #1f6feb;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 1rem 0;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.progress-banner-text {
+  flex-grow: 1;
+}
+
+.progress-banner-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.progress-banner-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 .modal-top {
   display: flex;
   justify-content: space-between;
