@@ -124,6 +124,8 @@ test('QuotaDetector pattern matching', () => {
   assert.strictEqual(QuotaDetector.matchExitCode(1), false);
 
   assert.ok(QuotaDetector.matchLogLine('E1006 22:58:07 quota_manager.go:45 RESOURCE_EXHAUSTED'));
+  assert.ok(!QuotaDetector.matchLogLine('I1007 20:25:29.854036 249 quota_manager.go:45] doRefreshQuota: starting reload (force=true)'));
+  assert.ok(!QuotaDetector.matchText('quota_manager.go:45] doRefreshQuota: starting reload'));
 });
 
 test('AgyLocator discovery and overrides', () => {
