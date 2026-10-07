@@ -269,3 +269,57 @@ test('settings.json auto-reconciliation and syncActiveState', () => {
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
   }
 });
+
+test('Quota classification and limit breakdowns (5-hour, weekly, total)', () => {
+  // Test 5-hour quota classification
+  const shortCooldownErr = 'Rate limit exceeded: 5 hour quota exhausted. Resets in 2h30m.';
+  const shortResult = QuotaDetector.classifyQuota({ text: shortCooldownErr });
+  assert.strictEqual(shortResult.quotaType, '5_hour');
+  assert.strictEqual(shortResult.cooldownMinutes, 150);
+
+  // Test weekly quota classification
+  const weeklyErr = 'error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 166h59m4s.';
+  const weeklyResult = QuotaDetector.classifyQuota({ text: weeklyErr, exitCode: 3 });
+  assert.strictEqual(weeklyResult.quotaType, 'weekly');
+  assert.ok(weeklyResult.cooldownMinutes > 9000);
+
+  // Test total / plan exhausted classification
+  const totalErr = 'Total plan quota exhausted for this billing period. Please upgrade plan.';
+  const totalResult = QuotaDetector.classifyQuota({ text: totalErr });
+  assert.strictEqual(totalResult.quotaType, 'total');
+
+  // Test Account model limit summaries
+  const acc = new Account({
+    id: 'test-acc',
+    name: 'Test',
+    email: 'test@example.com',
+    type: 'google'
+  });
+
+  // Initially all available
+  let summary = acc.getLimitSummary();
+  assert.strictEqual(summary.five_hour.status, 'available');
+  assert.strictEqual(summary.weekly.status, 'available');
+  assert.strictEqual(summary.total.status, 'available');
+
+  // Mark 5-hour exhausted
+  acc.mark5HourExhausted(180, '5-hour limit reached');
+  assert.strictEqual(acc.quotaType, '5_hour');
+  assert.strictEqual(acc.isExhausted(), true);
+  summary = acc.getLimitSummary();
+  assert.strictEqual(summary.five_hour.status, 'exhausted');
+  assert.strictEqual(summary.five_hour.is_exhausted, true);
+  assert.strictEqual(summary.weekly.status, 'available');
+  assert.strictEqual(summary.weekly.is_exhausted, false);
+
+  // Reset and mark weekly exhausted
+  acc.resetCooldown();
+  assert.strictEqual(acc.isExhausted(), false);
+  acc.markWeeklyExhausted(10000, 'Weekly quota exhausted');
+  assert.strictEqual(acc.quotaType, 'weekly');
+  summary = acc.getLimitSummary();
+  assert.strictEqual(summary.weekly.status, 'exhausted');
+  assert.strictEqual(summary.weekly.is_exhausted, true);
+  assert.strictEqual(summary.five_hour.status, 'available');
+  assert.strictEqual(summary.five_hour.is_exhausted, false);
+});

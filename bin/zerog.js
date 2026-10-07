@@ -197,20 +197,27 @@ ${Notifier.BOLD}BEHAVIOR:${Notifier.RESET}
     const active = this.manager.activeAccount();
     const accounts = this.manager.listAccounts();
     const exhausted = accounts.filter(a => a.isExhausted());
+    const in5h = accounts.filter(a => a.isExhausted() && a.quotaType === '5_hour');
+    const inWeekly = accounts.filter(a => a.isExhausted() && a.quotaType !== '5_hour');
     const daemon = new Daemon(this.manager);
 
     console.log(`\n${Notifier.BOLD}─── zerog Pool Status ───${Notifier.RESET}`);
     if (active) {
+      const limits = active.getLimitSummary();
       console.log(`  ${Notifier.BOLD}Active Account:${Notifier.RESET}    ${Notifier.GREEN}${active.name}${Notifier.RESET} (${active.email}) [${active.type}]`);
+      console.log(`  ${Notifier.BOLD}5-Hour Limit:${Notifier.RESET}      ${limits.five_hour.is_exhausted ? `${Notifier.YELLOW}${limits.five_hour.label}${Notifier.RESET}` : `${Notifier.GREEN}${limits.five_hour.label}${Notifier.RESET}`}`);
+      console.log(`  ${Notifier.BOLD}Weekly Limit:${Notifier.RESET}      ${limits.weekly.is_exhausted ? `${Notifier.RED}${limits.weekly.label}${Notifier.RESET}` : `${Notifier.GREEN}${limits.weekly.label}${Notifier.RESET}`}`);
+      console.log(`  ${Notifier.BOLD}Total Plan Limit:${Notifier.RESET}  ${limits.total.is_exhausted ? `${Notifier.RED}${limits.total.label}${Notifier.RESET}` : `${Notifier.GREEN}${limits.total.label}${Notifier.RESET}`}`);
     } else {
       console.log(`  ${Notifier.BOLD}Active Account:${Notifier.RESET}    ${Notifier.YELLOW}None${Notifier.RESET}`);
     }
     console.log(`  ${Notifier.BOLD}Total Accounts:${Notifier.RESET}    ${accounts.length}`);
     console.log(`  ${Notifier.BOLD}Ready Accounts:${Notifier.RESET}    ${accounts.length - exhausted.length}`);
-    console.log(`  ${Notifier.BOLD}In Cooldown:${Notifier.RESET}       ${exhausted.length}`);
-    console.log(`  ${Notifier.BOLD}Auto-Switch:${Notifier.RESET}       ${this.config.autoSwitch ? `${Notifier.GREEN}ENABLED${Notifier.RESET}` : `${Notifier.RED}DISABLED${Notifier.RESET}`}`);
+    console.log(`  ${Notifier.BOLD}In 5h Cooldown:${Notifier.RESET}    ${in5h.length}`);
+    console.log(`  ${Notifier.BOLD}In Weekly Limit:${Notifier.RESET}   ${inWeekly.length}`);
+    console.log(`  ${Notifier.BOLD}Auto-Switch:${Notifier.RESET}       ${this.config.autoSwitch ? `${Notifier.GREEN}ENABLED (auto-switches on 5h/weekly quota)${Notifier.RESET}` : `${Notifier.RED}DISABLED${Notifier.RESET}`}`);
     console.log(`  ${Notifier.BOLD}Strategy:${Notifier.RESET}          ${this.config.switchStrategy.toUpperCase()}`);
-    console.log(`  ${Notifier.BOLD}Cooldown Duration:${Notifier.RESET} ${this.config.cooldownMinutes} minutes`);
+    console.log(`  ${Notifier.BOLD}Default Cooldown:${Notifier.RESET}  ${this.config.cooldownMinutes} minutes`);
     console.log(`  ${Notifier.BOLD}Antigravity Path:${Notifier.RESET}  ${this.manager.agyPath}`);
     console.log(`  ${Notifier.BOLD}Keyring Backend:${Notifier.RESET}   ${this.manager.keyringBackend}`);
     console.log(`  ${Notifier.BOLD}Watchdog Daemon:${Notifier.RESET}   ${daemon.isRunning() ? `${Notifier.GREEN}RUNNING${Notifier.RESET}` : `${Notifier.GRAY}STOPPED${Notifier.RESET}`}`);
@@ -226,27 +233,36 @@ ${Notifier.BOLD}BEHAVIOR:${Notifier.RESET}
       return;
     }
 
-    console.log(`\n${Notifier.BOLD}PRIO  STATUS    TYPE    ID              EMAIL                           COOLDOWN${Notifier.RESET}`);
-    console.log('─'.repeat(78));
+    const padAnsi = (text, width) => {
+      const visible = text.replace(/\x1b\[[0-9;]*m/g, '');
+      return text + ' '.repeat(Math.max(0, width - visible.length));
+    };
+
+    console.log(`\n${Notifier.BOLD}PRIO  STATUS    TYPE     ID              5H-LIMIT    WEEKLY-LIMIT    RESET-IN       EMAIL${Notifier.RESET}`);
+    console.log('─'.repeat(100));
 
     for (const acc of accounts) {
       const isActive = active && active.id === acc.id;
       let statusStr = '';
       if (isActive) {
-        statusStr = `${Notifier.GREEN}ACTIVE  ${Notifier.RESET}`;
+        statusStr = `${Notifier.GREEN}ACTIVE${Notifier.RESET}`;
       } else if (acc.isExhausted()) {
-        statusStr = `${Notifier.RED}LIMIT   ${Notifier.RESET}`;
+        statusStr = `${Notifier.RED}LIMIT${Notifier.RESET}`;
       } else {
-        statusStr = `${Notifier.GRAY}READY   ${Notifier.RESET}`;
+        statusStr = `${Notifier.GRAY}READY${Notifier.RESET}`;
       }
 
-      const typeStr = acc.type === 'google' ? 'Google ' : 'API Key';
-      const cooldown = acc.isExhausted() ? `${Notifier.RED}${acc.remainingCooldownHuman()}${Notifier.RESET}` : '-';
-      const prioStr = `#${acc.priority}`.padEnd(5);
-      const idStr = acc.id.padEnd(15);
-      const emailStr = acc.email.slice(0, 28).padEnd(30);
+      const limits = acc.getLimitSummary();
+      const prioStr = padAnsi(`#${acc.priority}`, 5);
+      const statCol = padAnsi(statusStr, 9);
+      const typeStr = padAnsi(acc.type === 'google' ? 'Google' : 'API Key', 8);
+      const idStr = padAnsi(acc.id, 15);
+      const fiveHourStr = padAnsi(limits.five_hour.is_exhausted ? `${Notifier.YELLOW}Exhausted${Notifier.RESET}` : `${Notifier.GREEN}OK${Notifier.RESET}`, 12);
+      const weeklyStr = padAnsi(limits.weekly.is_exhausted ? `${Notifier.RED}Exhausted${Notifier.RESET}` : `${Notifier.GREEN}OK${Notifier.RESET}`, 15);
+      const cooldown = padAnsi(acc.isExhausted() ? `${acc.quotaType === '5_hour' ? Notifier.YELLOW : Notifier.RED}${acc.remainingCooldownHuman()}${Notifier.RESET}` : '-', 14);
+      const emailStr = acc.email.slice(0, 30);
 
-      console.log(`${prioStr} ${statusStr} ${typeStr}  ${idStr} ${emailStr} ${cooldown}`);
+      console.log(`${prioStr} ${statCol} ${typeStr} ${idStr} ${fiveHourStr} ${weeklyStr} ${cooldown} ${emailStr}`);
     }
     console.log('');
   }

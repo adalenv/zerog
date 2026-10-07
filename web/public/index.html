@@ -32,7 +32,7 @@
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Metric Cards -->
+      <!-- Metric Cards: 5-Hour, Weekly, Total Limits & Active Account -->
       <section class="grid-metrics">
         <div class="metric-card active-metric">
           <div class="metric-header">Active Account</div>
@@ -41,16 +41,22 @@
           <div class="metric-tag" id="activeAccountTag"></div>
         </div>
 
-        <div class="metric-card">
-          <div class="metric-header">Account Pool</div>
-          <div class="metric-title"><span id="poolReadyCount">0</span> <span class="metric-sub-inline">ready</span></div>
-          <div class="metric-sub"><span id="poolTotalCount">0</span> total · <span id="poolExhaustedCount">0</span> in cooldown</div>
+        <div class="metric-card" id="card5Hour">
+          <div class="metric-header">5-Hour Rolling Limit</div>
+          <div class="metric-title" id="fiveHourStatusText">Available</div>
+          <div class="metric-sub" id="fiveHourSubText">Short-term request window · <span id="poolIn5hCount">0</span> in limit</div>
+        </div>
+
+        <div class="metric-card" id="cardWeekly">
+          <div class="metric-header">Weekly Quota Limit</div>
+          <div class="metric-title" id="weeklyStatusText">Available</div>
+          <div class="metric-sub" id="weeklySubText">7-day individual quota · <span id="poolInWeeklyCount">0</span> in limit</div>
         </div>
 
         <div class="metric-card">
-          <div class="metric-header">Strategy</div>
-          <div class="metric-title" id="strategyText">Priority</div>
-          <div class="metric-sub">Default cooldown: <span id="cooldownText">60</span>m</div>
+          <div class="metric-header">Total Pool Limit</div>
+          <div class="metric-title"><span id="poolReadyCount">0</span> / <span id="poolTotalCount">0</span> <span class="metric-sub-inline">ready</span></div>
+          <div class="metric-sub"><span id="poolExhaustedCount">0</span> in cooldown · Strategy: <span id="strategyText">Priority</span></div>
         </div>
       </section>
 
@@ -58,8 +64,8 @@
       <section class="panel">
         <div class="panel-header">
           <div>
-            <h2 class="panel-title">Accounts</h2>
-            <p class="panel-subtitle">Accounts managed for automatic quota failover in agy sessions.</p>
+            <h2 class="panel-title">Accounts & Quota Limits</h2>
+            <p class="panel-subtitle">Accounts managed for automatic 5-hour, weekly, and total quota failover.</p>
           </div>
           <div class="panel-actions">
             <button class="btn btn-primary btn-sm" onclick="openAddAccountModal()">+ Add Account</button>
@@ -70,18 +76,19 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th style="width: 70px;">Prio</th>
+                <th style="width: 55px;">Prio</th>
                 <th>Account</th>
                 <th>Type</th>
-                <th>Status</th>
-                <th>Cooldown</th>
+                <th>5-Hour Limit</th>
+                <th>Weekly Limit</th>
+                <th>Total Status</th>
                 <th>Last Used</th>
                 <th class="text-right">Actions</th>
               </tr>
             </thead>
             <tbody id="accountsTableBody">
               <tr>
-                <td colspan="7" class="cell-loading">Loading accounts...</td>
+                <td colspan="8" class="cell-loading">Loading accounts...</td>
               </tr>
             </tbody>
           </table>

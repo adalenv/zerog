@@ -153,6 +153,39 @@ function renderStatus(status) {
     if (tagEl) tagEl.innerHTML = '<span class="badge badge-ready">Idle</span>';
   }
 
+  // Limit indicators: 5-Hour and Weekly
+  const fiveHourTitle = document.getElementById('fiveHourStatusText');
+  const fiveHourSub = document.getElementById('fiveHourSubText');
+  const weeklyTitle = document.getElementById('weeklyStatusText');
+  const weeklySub = document.getElementById('weeklySubText');
+
+  const in5hCount = status.in_5h_limit || 0;
+  const inWeeklyCount = status.in_weekly_limit || 0;
+
+  const limits = status.limits || {};
+  const fiveHour = limits.five_hour || {};
+  const weekly = limits.weekly || {};
+
+  if (fiveHourTitle && fiveHourSub) {
+    if (fiveHour.is_exhausted) {
+      fiveHourTitle.innerHTML = `<span style="color: var(--danger); font-size: 1.15rem;">Limit Reached</span>`;
+      fiveHourSub.innerHTML = `<span class="cooldown-timer" data-until="${active ? active.exhausted_until : ''}" style="color: var(--danger); font-family: var(--font-mono);">${fiveHour.label}</span> · ${in5hCount} in pool limit`;
+    } else {
+      fiveHourTitle.innerHTML = `<span style="color: var(--success); font-size: 1.15rem;">Available (OK)</span>`;
+      fiveHourSub.textContent = `Rolling request window OK · ${in5hCount} in limit`;
+    }
+  }
+
+  if (weeklyTitle && weeklySub) {
+    if (weekly.is_exhausted) {
+      weeklyTitle.innerHTML = `<span style="color: var(--danger); font-size: 1.15rem;">Limit Reached</span>`;
+      weeklySub.innerHTML = `<span class="cooldown-timer" data-until="${active ? active.exhausted_until : ''}" style="color: var(--danger); font-family: var(--font-mono);">${weekly.label}</span> · ${inWeeklyCount} in pool limit`;
+    } else {
+      weeklyTitle.innerHTML = `<span style="color: var(--success); font-size: 1.15rem;">Available (OK)</span>`;
+      weeklySub.textContent = `7-day individual quota OK · ${inWeeklyCount} in limit`;
+    }
+  }
+
   // Metric counts
   const readyCount = status.ready ?? status.ready_accounts ?? 0;
   const totalCount = status.total ?? status.total_accounts ?? 0;
@@ -182,7 +215,7 @@ function renderAccounts(accounts, activeAccount) {
   if (list.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="cell-empty">No accounts in pool. Click "+ Add Account" above to add one.</td>
+        <td colspan="8" class="cell-empty">No accounts in pool. Click "+ Add Account" above to add one.</td>
       </tr>
     `;
     return;
@@ -208,13 +241,27 @@ function renderAccounts(accounts, activeAccount) {
       statusBadge = '<span class="badge badge-ready">Ready</span>';
     }
 
+    const limits = acc.limits || {};
+    const fiveHour = limits.five_hour || {};
+    const weekly = limits.weekly || {};
+
+    let fiveHourBadge = '';
+    if (fiveHour.is_exhausted && acc.exhausted_until) {
+      fiveHourBadge = `<span class="badge badge-limit"><span class="cooldown-timer" data-until="${escapeHtml(acc.exhausted_until)}">${getRemainingTime(acc.exhausted_until)}</span></span>`;
+    } else {
+      fiveHourBadge = '<span class="badge badge-ready">OK</span>';
+    }
+
+    let weeklyBadge = '';
+    if (weekly.is_exhausted && acc.exhausted_until) {
+      weeklyBadge = `<span class="badge badge-limit"><span class="cooldown-timer" data-until="${escapeHtml(acc.exhausted_until)}">${getRemainingTime(acc.exhausted_until)}</span></span>`;
+    } else {
+      weeklyBadge = '<span class="badge badge-ready">OK</span>';
+    }
+
     const lastUsedStr = acc.last_used
       ? formatRelativeTime(acc.last_used)
       : 'Never';
-
-    const cooldownStr = isExhausted && acc.exhausted_until
-      ? `<span class="cooldown-timer" data-until="${escapeHtml(acc.exhausted_until)}" style="color: var(--danger); font-family: var(--font-mono); font-size: 12px;">${getRemainingTime(acc.exhausted_until)}</span>`
-      : '—';
 
     return `
       <tr>
@@ -226,8 +273,9 @@ function renderAccounts(accounts, activeAccount) {
           </div>
         </td>
         <td>${typeBadge}</td>
+        <td>${fiveHourBadge}</td>
+        <td>${weeklyBadge}</td>
         <td>${statusBadge}</td>
-        <td>${cooldownStr}</td>
         <td style="color: var(--text-muted); font-size: 12px;">${lastUsedStr}</td>
         <td class="text-right">
           <div class="actions-row">
