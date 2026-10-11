@@ -17,8 +17,19 @@ Thumbs.db
 *my-pool*.json
 *.key
 *.token
+*.pem
+.env
+.env.*
+*.log
+*.pid
 .zerog_keyring_token
 events.jsonl
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Ruby / Gem artifacts
 *.gem

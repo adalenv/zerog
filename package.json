@@ -22,7 +22,7 @@
     "rate-limit-failover",
     "account-rotation"
   ],
-  "author": "Adalen Vladi <adalenvladi@gmail.com>",
+  "author": "Adalen Vladi",
   "license": "MIT",
   "repository": {
     "type": "git",
