@@ -4,7 +4,7 @@
   "description": "Antigravity CLI (agy) Account Auto-Switcher with Transparent Quota Failover",
   "main": "lib/index.js",
   "bin": {
-    "zerog": "./bin/zerog.js"
+    "zerog": "bin/zerog.js"
   },
   "scripts": {
     "postinstall": "node ./scripts/postinstall.js",
@@ -35,7 +35,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/adalenv/zerog.git"
+    "url": "git+https://github.com/adalenv/zerog.git"
   },
   "bugs": {
     "url": "https://github.com/adalenv/zerog/issues"
