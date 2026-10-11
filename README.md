@@ -1,6 +1,6 @@
 # zerog
 
-[![version](https://img.shields.io/badge/version-1.0.0-blue.svg?style=flat-square)](https://github.com/adalenv/zerog)
+[![npm](https://img.shields.io/npm/v/@adalenv/zerog?style=flat-square&color=blue)](https://www.npmjs.com/package/@adalenv/zerog)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![tests](https://img.shields.io/badge/tests-9%20passed-brightgreen.svg?style=flat-square)](test/test_zerog.js)
@@ -36,26 +36,30 @@ flowchart TD
 
 ## Installation
 
-### Option 1: Install from GitHub (Available Now)
+### Option 1: Install from npm Registry
 
-Install globally directly from the repository:
+```bash
+npm install -g @adalenv/zerog
+```
+
+Or run on demand without installing:
+
+```bash
+npx @adalenv/zerog
+```
+
+*(Once installed, the CLI command is simply `zerog`)*.
+
+### Option 2: Install from GitHub
 
 ```bash
 npm install -g git+https://github.com/adalenv/zerog.git
 ```
 
-Or run directly without installing:
+Or run directly from GitHub via `npx`:
 
 ```bash
 npx github:adalenv/zerog
-```
-
-### Option 2: Install from npm Registry
-
-```bash
-npm install -g zerog
-# or
-npx zerog
 ```
 
 *(If `agy` is not found on your system, `zerog` will offer to install it automatically during postinstall.)*

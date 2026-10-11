@@ -1,5 +1,5 @@
 {
-  "name": "zerog",
+  "name": "@adalenv/zerog",
   "version": "1.0.0",
   "description": "Antigravity CLI (agy) Account Auto-Switcher with Transparent Quota Failover",
   "main": "lib/index.js",
