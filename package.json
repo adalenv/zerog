@@ -11,6 +11,15 @@
     "start": "node ./bin/zerog.js",
     "test": "node --test test/test_zerog.js"
   },
+  "files": [
+    "bin",
+    "lib",
+    "web",
+    "scripts",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "preferGlobal": true,
   "keywords": [
     "antigravity",

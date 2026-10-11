@@ -1,6 +1,6 @@
 # Contributing to zerog
 
-Thank you for your interest in contributing to **zerog**!
+Thank you for contributing to **zerog**! We welcome bug reports, feature suggestions, and pull requests.
 
 ## Getting Started
 
@@ -10,36 +10,55 @@ Thank you for your interest in contributing to **zerog**!
    cd zerog
    ```
 
-2. **Verify tests pass**:
+2. **Run the test suite**:
    ```bash
    npm test
    ```
 
-3. **Install locally for development**:
+3. **Link locally for development**:
    ```bash
    npm link
-   # or
-   ./install.sh
    ```
 
-## Design Principles
+## Core Design Principles
 
-- **Zero External npm Dependencies**: `zerog` runs on standard pure Node.js standard libraries (`child_process`, `fs`, `path`, `os`, `http`, `events`). Do not introduce external dependencies so `npx zerog` remains instant and secure.
-- **Native TTY Fidelity**: Do not intercept raw keystrokes or alter escape codes. Interactive mode must directly inherit standard I/O streams (`stdio: 'inherit'`) for full terminal fidelity with `agy`.
-- **Cross-Platform**: Support macOS Keychain, Linux Secret Service (`secret-tool`) with fallback, and Windows Credential Manager.
-- **Security First**: Never store unencrypted credentials in world-readable files. Account exports must enforce `0600` permissions.
+- **Zero External npm Dependencies**: `zerog` relies exclusively on Node.js built-in standard modules (`child_process`, `fs`, `path`, `os`, `http`, `events`). Do not add external npm packages.
+- **Native TTY Stream Fidelity**: Never alter raw escape sequences or intercept keystrokes in interactive mode. Standard I/O streams are directly inherited (`stdio: 'inherit'`) to preserve full terminal fidelity with `agy`.
+- **Cross-Platform Compatibility**: Supports macOS Keychain, Linux Secret Service (`secret-tool`) with local file fallback, and Windows Credential Manager.
+- **Security First**: Credentials must never be written in world-readable locations. Account exports must strictly enforce `0600` POSIX file permissions.
 
 ## Running Tests
 
-All unit tests use Node.js built-in test runner (`node:test` and `node:assert`):
+Tests use the native Node.js test runner (`node:test` and `node:assert`):
+
 ```bash
 npm test
 ```
 
-## Pull Request Guidelines
+To run a specific test:
+```bash
+node --test --test-name-pattern="QuotaDetector" test/test_zerog.js
+```
 
-1. Create a feature branch: `git checkout -b feature/my-new-feature`
-2. Commit your changes with descriptive commit messages.
-3. Add tests in `test/test_zerog.js` for new functionality.
-4. Ensure all tests pass.
-5. Push to your branch and open a Pull Request.
+## Pull Request Process
+
+1. Create a descriptive feature branch:
+   ```bash
+   git checkout -b feature/my-enhancement
+   ```
+2. Write clean, readable Node.js code matching existing code style (`'use strict'`, CommonJS modules, 2-space indentation).
+3. Add unit test coverage in `test/test_zerog.js` for any new functionality or bug fixes.
+4. Verify all tests pass (`npm test`).
+5. Commit your changes with clear commit messages.
+6. Submit a Pull Request targeting the `main` branch.
+
+## Reporting Issues
+
+If you find a bug or have a suggestion, please open an issue on GitHub:
+- Include your OS and Node.js version (`node -v`).
+- Include steps to reproduce and relevant terminal output.
+- **Never include raw API keys, OAuth tokens, or sensitive account IDs in issues or logs.**
+
+## License
+
+By contributing to `zerog`, you agree that your contributions will be licensed under the project's [MIT License](LICENSE).
